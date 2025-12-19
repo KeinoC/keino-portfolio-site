@@ -1,0 +1,76 @@
+{
+  "name": "Keino Portfolio Site Engineering Workflow",
+  "version": "1.0.0",
+  "description": "Professional development platform and skill tree portfolio",
+
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev*)",
+      "Bash(npm run lint*)",
+      "Bash(npm run build*)",
+      "Bash(npm run test*)",
+      "Bash(npm run typecheck*)",
+      "Bash(npm run type-check*)",
+      "Bash(npm run check*)",
+      "Bash(npm run verify*)",
+      "Bash(npm run validate*)",
+      "Bash(npm run analyze*)",
+      "Bash(npm audit*)",
+      "Bash(npx tsc*)",
+      "Bash(npx eslint*)",
+      "Bash(npx prettier*)",
+      "Bash(npx prisma generate*)",
+      "Bash(npx prisma db push*)",
+      "Bash(npx prisma migrate*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push*)",
+      "Bash(kill*)",
+      "Bash(pkill*)",
+      "Bash(lsof*)",
+      "Bash(ps*)",
+      "Bash(vercel*)",
+      "Bash(bun run /Users/keinoc/Development/K-Tingz/.claude/agents/orchestrator.ts*)",
+      "Bash(./k-tingz*)",
+      "Bash(./scripts/*)",
+      "Task(*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:prisma.io)",
+      "WebFetch(domain:nextjs.org)",
+      "WebFetch(domain:tailwindcss.com)",
+      "WebFetch(domain:framer.com)",
+      "Read(/Users/keinoc/Development/K-Tingz/keino-portfolio-site/**)"
+    ]
+  },
+
+  "configuration": {
+    "auto_progression": true,
+    "parallel_execution": false,
+    "error_handling": "auto_retry",
+    "project_type": "portfolio_site",
+    "documentation_sources": {
+      "react": "https://react.dev/reference",
+      "nextjs": "https://nextjs.org/docs",
+      "tailwind": "https://tailwindcss.com/docs",
+      "framer": "https://www.framer.com/motion/",
+      "typescript": "https://www.typescriptlang.org/docs/"
+    },
+    "portfolio_context": {
+      "domain": "professional_development",
+      "primary_functions": ["skill_visualization", "resume_generation", "networking"],
+      "target_audience": ["recruiters", "employers", "collaborators"]
+    }
+  },
+
+  "directories": {
+    "app": "app/",
+    "components": "components/",
+    "lib": "lib/",
+    "public": "public/",
+    "types": "types/"
+  }
+}

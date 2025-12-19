@@ -1144,7 +1144,7 @@ function SceneContent({
 // Letter size aspect ratio (width / height)
 const LETTER_RATIO = 8.5 / 11 // 0.773
 
-export default function Home() {
+export default function ExplorePage() {
   const [lightPos, setLightPos] = useState({ x: 20, y: 10 })
   // Cursor state is managed via callbacks but value unused at this level
   const [, setCursor] = useState<'grab' | 'grabbing' | 'default'>('default')
