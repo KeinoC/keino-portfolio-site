@@ -81,16 +81,16 @@ export function Neumorphic3DButton({
   }
 
   const handlePointerUp = () => {
-    if (isPressed) {
+    if (isPressed && isPowered) {
       setIsPressed(false)
       onClick?.()
     }
   }
 
   const handlePointerOver = () => {
-    setIsHovered(true)
-    onHover?.(true)
     if (isPowered && !disabled) {
+      setIsHovered(true)
+      onHover?.(true)
       document.body.style.cursor = 'pointer'
     }
   }
@@ -100,6 +100,13 @@ export function Neumorphic3DButton({
     setIsPressed(false)
     onHover?.(false)
     document.body.style.cursor = 'default'
+  }
+
+  // Only allow interactions when powered
+  const handleClick = () => {
+    if (isPowered && !disabled) {
+      onClick?.()
+    }
   }
 
   // Calculate current depth based on animation
@@ -125,8 +132,8 @@ export function Neumorphic3DButton({
           width={width}
           height={height}
           pattern={pattern}
-          opacity={lineOpacity.current}
-          color={UI3D_COLORS.metallic.highlight}
+          opacity={lineOpacity.current * 0.6} // More muted when unpowered
+          color={isPowered ? UI3D_COLORS.metallic.highlight : UI3D_COLORS.metallic.shadow}
           lineWidth={1.5}
         />
       </group>
