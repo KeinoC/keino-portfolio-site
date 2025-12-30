@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
@@ -41,6 +41,14 @@ export function Neumorphic3DButton({
   const [isHovered, setIsHovered] = useState(false)
   const [isPressed, setIsPressed] = useState(false)
 
+  // Debug: Log when button mounts/unmounts
+  useEffect(() => {
+    console.log(`Button MOUNTED: ${id}`, { position, isPowered })
+    return () => {
+      console.log(`Button UNMOUNTED: ${id}`)
+    }
+  }, [id, position, isPowered])
+
   // Animation refs for smooth transitions
   const raiseProgress = useRef(0)      // 0 = flat/lines, 1 = raised/solid
   const pressProgress = useRef(0)      // 0 = normal, 1 = pressed
@@ -75,6 +83,7 @@ export function Neumorphic3DButton({
   })
 
   const handlePointerDown = () => {
+    console.log('Button pointerDown:', id, 'isPowered:', isPowered, 'disabled:', disabled)
     if (!disabled && isPowered) {
       setIsPressed(true)
     }
@@ -100,13 +109,6 @@ export function Neumorphic3DButton({
     setIsPressed(false)
     onHover?.(false)
     document.body.style.cursor = 'default'
-  }
-
-  // Only allow interactions when powered
-  const handleClick = () => {
-    if (isPowered && !disabled) {
-      onClick?.()
-    }
   }
 
   // Calculate current depth based on animation
@@ -159,18 +161,23 @@ export function Neumorphic3DButton({
         </RoundedBox>
       )}
 
-      {/* Invisible hit area for unpowered state (still needs to block clicks) */}
-      {solidOpacity.current < 0.5 && (
-        <mesh
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onPointerOver={handlePointerOver}
-          onPointerOut={handlePointerOut}
-        >
-          <planeGeometry args={[width, height]} />
-          <meshBasicMaterial transparent opacity={0} />
-        </mesh>
-      )}
+      {/* Always-present hit area for click detection - DEBUG: bright magenta box */}
+      <mesh
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+        onClick={() => {
+          console.log('Button onClick:', id, 'isPowered:', isPowered)
+          if (!disabled) {
+            onClick?.()
+          }
+        }}
+        position={[0, 0, 0.15]}
+      >
+        <boxGeometry args={[width, height, 0.05]} />
+        <meshBasicMaterial color="#ff00ff" side={THREE.DoubleSide} />
+      </mesh>
 
       {/* Top surface highlight when raised */}
       {raiseProgress.current > 0.1 && solidOpacity.current > 0.1 && (

@@ -15,6 +15,7 @@ import { NavButtonGroup3D } from '@/components/3d/ui'
 import { COLLISION_CONFIGS, Z_LAYERS } from '@/lib/physics-groups'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { motion } from 'framer-motion'
+import { GlassButton } from '@/components/ui'
 import * as THREE from 'three'
 
 // Starting position of the cube in 3D space
@@ -485,9 +486,9 @@ function LightCube({
         onPointerOver={() => !isDragging.current && onCursorChange('grab')}
         onPointerOut={() => !isDragging.current && onCursorChange('default')}
       >
-        {/* Larger invisible touch area for mobile */}
+        {/* Invisible touch area - slightly larger than cube */}
         <mesh visible={false}>
-          <sphereGeometry args={[0.6, 8, 8]} />
+          <sphereGeometry args={[0.25, 8, 8]} />
           <meshBasicMaterial transparent opacity={0} />
         </mesh>
 
@@ -676,9 +677,9 @@ function CubeHitbox({
         top: `${screenPos.y}%`,
         transform: 'translate(-50%, -50%)',
         cursor: isDragging ? 'grabbing' : 'grab',
-        // Debug: uncomment to see hitbox
-        // backgroundColor: 'rgba(255, 0, 0, 0.2)',
-        // border: '2px solid red',
+        // Debug: visible hitbox
+        backgroundColor: 'rgba(0, 255, 0, 0.3)',
+        border: '2px solid lime',
       }}
       onPointerDown={(e) => {
         e.preventDefault()
@@ -1031,6 +1032,30 @@ function SceneContent({
       {/* Camera zoom controller */}
       <CameraController targetZoom={cameraZoom} />
 
+      {/* DEBUG: Test clickable mesh at center of screen */}
+      <mesh
+        position={[0, 0, 1]}
+        onClick={() => {
+          console.log('DEBUG TEST BUTTON CLICKED!')
+          onNavigate('WORK') // Test navigation
+        }}
+      >
+        <boxGeometry args={[1, 1, 0.2]} />
+        <meshBasicMaterial color="#00ff00" />
+      </mesh>
+
+      {/* DEBUG: Test nav button at fixed visible position */}
+      <mesh
+        position={[2, 0, 1]}
+        onClick={() => {
+          console.log('DEBUG SIDE BUTTON CLICKED - ABOUT!')
+          onNavigate('ABOUT')
+        }}
+      >
+        <boxGeometry args={[0.8, 0.5, 0.1]} />
+        <meshBasicMaterial color="#0088ff" />
+      </mesh>
+
       {/* Unified physics world - everything in a single context */}
       <Physics gravity={[0, 0, -9.8]}>
         {/* World foundation - only visible in later scroll phase */}
@@ -1059,6 +1084,23 @@ function SceneContent({
           <PowerChannel startPos={channelStart} endPos={channelEnd} isPowered={isPowered} />
 
           {/* Nav buttons - directly on page surface */}
+          {/* DEBUG: Log groove position */}
+          {console.log('NAV BUTTONS DEBUG:', {
+            groovePosition,
+            grooveHeight,
+            startY: grooveHeight / 2 - 0.5,
+            isPowered,
+            activePage,
+            pageScale,
+            homePageSlide3D,
+          })}
+
+          {/* DEBUG: Marker at groove position to verify location */}
+          <mesh position={[groovePosition[0], groovePosition[1], 0.5]}>
+            <sphereGeometry args={[0.2, 16, 16]} />
+            <meshBasicMaterial color="#ffff00" />
+          </mesh>
+
           <NavButtonGroup3D
             position={groovePosition}
             items={[
@@ -1137,6 +1179,23 @@ function SceneContent({
           mipmapBlur
         />
       </EffectComposer>
+
+      {/* TEST: Nav buttons OUTSIDE Physics - at fixed center position for testing */}
+      <group position={[-1, 0, 0.5]}>
+        <NavButtonGroup3D
+          position={[0, 0, 0]}
+          items={[
+            { id: 'WORK' },
+            { id: 'ABOUT' },
+            { id: 'CONTACT' },
+          ]}
+          activeId={activePage}
+          isPowered={true}  // Force powered for testing
+          onNavigate={onNavigate}
+          spacing={0.75}
+          startY={0.75}
+        />
+      </group>
     </>
   )
 }
@@ -1260,12 +1319,7 @@ export default function ExplorePage() {
     setActivePage(prev => prev === page ? null : page) // Toggle if same page clicked
   }, [])
 
-  // Close detail page when scrolling back to platform phase
-  useEffect(() => {
-    if (scrollProgress < 0.4 && activePage) {
-      setActivePage(null)
-    }
-  }, [scrollProgress, activePage])
+  // Note: activePage state persists across scroll - user must click BACK to close
 
   const handleIdleChange = useCallback((idle: boolean, intensity: number) => {
     setIsIdle(idle)
@@ -1293,13 +1347,17 @@ export default function ExplorePage() {
         <MarbleBackground />
       </div>
 
-      {/* 3D Canvas - full screen, above pages, pointer-events none */}
-      <div className="fixed inset-0 z-20 pointer-events-none">
+      {/* 3D Canvas - full screen */}
+      {/* Pointer events enabled when scrolled out OR no page active, disabled when page is visible */}
+      {/* This allows nav buttons to work in zoomed-out view even with state persisted */}
+      <div className={`fixed inset-0 z-20 ${activePage && scrollProgress > 0.3 ? 'pointer-events-none' : ''}`}>
         <Canvas
           orthographic
           camera={{ position: [0, 0, 100], zoom: 80, near: 0.1, far: 1000 }}
-          style={{ touchAction: 'none', background: 'transparent', pointerEvents: 'none' }}
+          style={{ touchAction: 'none', background: 'transparent', pointerEvents: 'auto' }}
           gl={{ antialias: true, alpha: true }}
+          onPointerMissed={() => console.log('Canvas: pointer missed (clicked but no object hit)')}
+          onClick={() => console.log('Canvas: raw onClick')}
         >
           <ambientLight intensity={0.02} />
           <Suspense fallback={null}>
@@ -1334,8 +1392,9 @@ export default function ExplorePage() {
         transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
       >
         {/* Home page (left) with 3D Canvas overlay */}
+        {/* pointer-events-none so clicks pass through to canvas for nav buttons */}
         <div
-          className="flex-shrink-0 flex items-center justify-center"
+          className="flex-shrink-0 flex items-center justify-center pointer-events-none"
           style={{
             width: viewport.width,
             height: viewport.height,
@@ -1343,7 +1402,7 @@ export default function ExplorePage() {
           }}
         >
           <div
-            className="relative overflow-hidden"
+            className="relative overflow-hidden pointer-events-none"
             style={{
               transform: `scale(${scale})`,
               width: sheetWidth,
@@ -1365,7 +1424,7 @@ export default function ExplorePage() {
 
             {/* Dark scene content - dramatically lightens when powered */}
             <motion.div
-              className="absolute inset-0"
+              className="absolute inset-0 pointer-events-none"
               animate={{
                 backgroundColor: isPowered ? '#3a3836' : '#0d0d0f'
               }}
@@ -1466,68 +1525,75 @@ export default function ExplorePage() {
             {/* Pixel grid reveal animation - key forces remount on page change */}
             {activePage && (
             <PixelGridReveal key={activePage}>
-              {/* Dark background matching home */}
+              {/* Background - dark for WORK/ABOUT, transparent for CONTACT */}
               <motion.div
                 className="absolute inset-0"
                 animate={{
-                  backgroundColor: isPowered ? '#3a3836' : '#0d0d0f'
+                  backgroundColor: activePage === 'CONTACT'
+                    ? 'transparent'
+                    : (isPowered ? '#3a3836' : '#0d0d0f')
                 }}
                 transition={{ duration: 1.2, ease: 'easeOut' }}
               >
-                {/* Background noise texture */}
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-[0.07]"
-                  style={{ filter: 'url(#noise)', mixBlendMode: 'overlay' }}
-                />
+                {/* Dark page effects - only show for non-CONTACT pages */}
+                {activePage !== 'CONTACT' && (
+                  <>
+                    {/* Background noise texture */}
+                    <div
+                      className="pointer-events-none absolute inset-0 opacity-[0.07]"
+                      style={{ filter: 'url(#noise)', mixBlendMode: 'overlay' }}
+                    />
 
-                {/* Vignette - reduces when powered */}
-                <motion.div
-                  className="pointer-events-none absolute inset-0"
-                  animate={{
-                    background: isPowered
-                      ? 'radial-gradient(ellipse at 50% 50%, transparent 0%, rgba(0,0,0,0.05) 100%)'
-                      : 'radial-gradient(ellipse at 50% 50%, transparent 0%, rgba(0,0,0,0.3) 100%)'
-                  }}
-                  transition={{ duration: 1.2 }}
-                />
+                    {/* Vignette - reduces when powered */}
+                    <motion.div
+                      className="pointer-events-none absolute inset-0"
+                      animate={{
+                        background: isPowered
+                          ? 'radial-gradient(ellipse at 50% 50%, transparent 0%, rgba(0,0,0,0.05) 100%)'
+                          : 'radial-gradient(ellipse at 50% 50%, transparent 0%, rgba(0,0,0,0.3) 100%)'
+                      }}
+                      transition={{ duration: 1.2 }}
+                    />
 
-                {/* 360° circular light from cube */}
-                <div
-                  className="pointer-events-none absolute inset-0"
-                  style={{
-                    background: `radial-gradient(circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,250,240,0.15) 0%, rgba(255,245,230,0.08) 15%, rgba(255,240,220,0.03) 30%, transparent 55%)`
-                  }}
-                />
+                    {/* 360° circular light from cube */}
+                    <div
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        background: `radial-gradient(circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,250,240,0.15) 0%, rgba(255,245,230,0.08) 15%, rgba(255,240,220,0.03) 30%, transparent 55%)`
+                      }}
+                    />
 
-                {/* Full illumination when powered */}
-                <motion.div
-                  className="pointer-events-none absolute inset-0"
-                  style={{
-                    background: 'radial-gradient(ellipse at 50% 30%, rgba(255,248,235,0.4) 0%, rgba(255,245,225,0.25) 40%, rgba(255,240,215,0.1) 70%, transparent 100%)',
-                  }}
-                  animate={{ opacity: isPowered ? 1 : 0 }}
-                  transition={{ duration: 1.2 }}
-                />
+                    {/* Full illumination when powered */}
+                    <motion.div
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        background: 'radial-gradient(ellipse at 50% 30%, rgba(255,248,235,0.4) 0%, rgba(255,245,225,0.25) 40%, rgba(255,240,215,0.1) 70%, transparent 100%)',
+                      }}
+                      animate={{ opacity: isPowered ? 1 : 0 }}
+                      transition={{ duration: 1.2 }}
+                    />
 
-                {/* Idle glow when floating */}
-                <motion.div
-                  className="pointer-events-none absolute inset-0"
-                  style={{
-                    background: 'radial-gradient(ellipse at 50% 50%, rgba(255,248,235,0.12) 0%, rgba(255,245,225,0.06) 40%, transparent 70%)',
-                  }}
-                  animate={{ opacity: isIdle && !isPowered ? idleIntensity * 0.5 : 0 }}
-                  transition={{ duration: 0.5 }}
-                />
+                    {/* Idle glow when floating */}
+                    <motion.div
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        background: 'radial-gradient(ellipse at 50% 50%, rgba(255,248,235,0.12) 0%, rgba(255,245,225,0.06) 40%, transparent 70%)',
+                      }}
+                      animate={{ opacity: isIdle && !isPowered ? idleIntensity * 0.5 : 0 }}
+                      transition={{ duration: 0.5 }}
+                    />
 
-                {/* Warm ambient fill when powered */}
-                <motion.div
-                  className="pointer-events-none absolute inset-0"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255,252,240,0.25) 0%, rgba(255,248,230,0.15) 50%, rgba(255,245,220,0.08) 100%)',
-                  }}
-                  animate={{ opacity: isPowered ? 1 : 0 }}
-                  transition={{ duration: 1.2 }}
-                />
+                    {/* Warm ambient fill when powered */}
+                    <motion.div
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(255,252,240,0.25) 0%, rgba(255,248,230,0.15) 50%, rgba(255,245,220,0.08) 100%)',
+                      }}
+                      animate={{ opacity: isPowered ? 1 : 0 }}
+                      transition={{ duration: 1.2 }}
+                    />
+                  </>
+                )}
 
                 {/* Page content - padded to stay within visible (clipped) area */}
                 <div className="absolute inset-0 overflow-y-auto">
@@ -1541,6 +1607,7 @@ export default function ExplorePage() {
                   }}
                 >
                   {/* Header - compact for narrower visible area */}
+                  {/* Text colors: dark for CONTACT (transparent bg), light for others */}
                   <motion.div
                     className="flex items-center justify-between mb-6"
                     initial={{ opacity: 0, y: -20 }}
@@ -1548,13 +1615,19 @@ export default function ExplorePage() {
                     transition={{ duration: 0.5, delay: 0.1 }}
                   >
                     <h1
-                      className="text-2xl sm:text-3xl font-bold text-white/90 tracking-wider"
+                      className={`text-2xl sm:text-3xl font-bold tracking-wider ${
+                        activePage === 'CONTACT' ? 'text-gray-800' : 'text-white/90'
+                      }`}
                       style={{ fontFamily: 'var(--font-display)' }}
                     >
                       {activePage}
                     </h1>
                     <button
-                      className="px-3 py-1.5 text-white/40 text-xs sm:text-sm tracking-wider hover:text-white/70 transition-colors"
+                      className={`px-3 py-1.5 text-xs sm:text-sm tracking-wider transition-colors ${
+                        activePage === 'CONTACT'
+                          ? 'text-gray-500 hover:text-gray-700'
+                          : 'text-white/40 hover:text-white/70'
+                      }`}
                       onClick={() => setActivePage(null)}
                     >
                       ← BACK
@@ -1644,7 +1717,7 @@ export default function ExplorePage() {
                     </motion.div>
                   )}
 
-                  {/* CONTACT Content */}
+                  {/* CONTACT Content - Glass design with transparent background */}
                   {activePage === 'CONTACT' && (
                     <motion.div
                       className="max-w-md"
@@ -1653,7 +1726,7 @@ export default function ExplorePage() {
                       transition={{ duration: 0.5, delay: 0.2 }}
                     >
                       <motion.p
-                        className="text-white/60 mb-8"
+                        className="text-gray-600 mb-8"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.3 }}
@@ -1667,42 +1740,42 @@ export default function ExplorePage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.4 }}
                       >
-                        <a
+                        <GlassButton
                           href="mailto:hello@keino.dev"
-                          className="flex items-center gap-4 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
-                        >
-                          <span className="text-2xl">✉</span>
-                          <div>
-                            <p className="text-white/80 group-hover:text-white transition-colors">hello@keino.dev</p>
-                            <p className="text-white/40 text-sm">Email</p>
-                          </div>
-                        </a>
+                          icon="✉"
+                          title="hello@keino.dev"
+                          subtitle="Email"
+                          variant="light"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, delay: 0.5 }}
+                        />
 
-                        <a
+                        <GlassButton
                           href="https://github.com/keino"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-4 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
-                        >
-                          <span className="text-2xl">⌘</span>
-                          <div>
-                            <p className="text-white/80 group-hover:text-white transition-colors">github.com/keino</p>
-                            <p className="text-white/40 text-sm">GitHub</p>
-                          </div>
-                        </a>
+                          icon="⌘"
+                          title="github.com/keino"
+                          subtitle="GitHub"
+                          variant="light"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, delay: 0.6 }}
+                        />
 
-                        <a
+                        <GlassButton
                           href="https://linkedin.com/in/keino"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-4 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
-                        >
-                          <span className="text-2xl">in</span>
-                          <div>
-                            <p className="text-white/80 group-hover:text-white transition-colors">linkedin.com/in/keino</p>
-                            <p className="text-white/40 text-sm">LinkedIn</p>
-                          </div>
-                        </a>
+                          icon="in"
+                          title="linkedin.com/in/keino"
+                          subtitle="LinkedIn"
+                          variant="light"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.4, delay: 0.7 }}
+                        />
                       </motion.div>
                     </motion.div>
                   )}
@@ -1735,7 +1808,7 @@ export default function ExplorePage() {
         screenPos={lightPos}
         onDragStart={handleCubeHitboxDragStart}
         isDragging={isDraggingCube}
-        size={80}
+        size={50}
       />
 
     </>

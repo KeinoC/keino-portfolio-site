@@ -1,5 +1,10 @@
 # 3D Portfolio Menu - Project Context & Plan
 
+## User Rules
+- Do not add comments to generated code - feel free to explain in the composer or chat window
+- Use context sister files in the same folder as context
+- Check for errors and UI issues after making any changes - run linter and test functionality
+
 ## Project Overview
 Creating an interactive 3D menu system for Keino's portfolio site that captures his multi-disciplinary background. The environment morphs and changes theme based on which area of work the user is exploring.
 

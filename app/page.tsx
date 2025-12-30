@@ -11,6 +11,7 @@ import { MarbleFloor } from '@/components/3d/MarbleFloor'
 import { WorldWalls } from '@/components/3d/WorldWalls'
 import { HomePlatform } from '@/components/3d/HomePlatform'
 import { DetailPagePlane } from '@/components/3d/DetailPagePlane'
+import { Card3D, RightLetters3D } from '@/components/3d'
 import { NavButtonGroup3D } from '@/components/3d/ui'
 import { COLLISION_CONFIGS, Z_LAYERS } from '@/lib/physics-groups'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
@@ -1126,6 +1127,25 @@ function SceneContent({
           height={viewport.height * 0.9}
           slideDistance={viewport.width / 2}
         />
+
+        {/* Physics-enabled card on the right side */}
+        <Card3D
+          position={[viewport.width / 2 + 2, 1.5, 0.1]}
+          title="PORTFOLIO"
+          content="Physics Demo"
+          width={1.8}
+          height={1.2}
+          color="#1e40af"
+        />
+
+        {/* Physics-enabled letters on the right side */}
+        <RightLetters3D
+          text="RIGHT"
+          position={[viewport.width / 2 + 2, -1, 0.2]}
+          spacing={0.5}
+          letterSize={0.6}
+          color="#dc2626"
+        />
       </Physics>
 
       {/* Bloom effect for soft glow */}
@@ -1293,12 +1313,12 @@ export default function Home() {
         <MarbleBackground />
       </div>
 
-      {/* 3D Canvas - full screen, above pages, pointer-events none */}
-      <div className="fixed inset-0 z-20 pointer-events-none">
+      {/* 3D Canvas - full screen, above pages, pointer-events enabled when powered */}
+      <div className={`fixed inset-0 z-20 ${isPowered ? 'pointer-events-auto' : 'pointer-events-none'}`}>
         <Canvas
           orthographic
           camera={{ position: [0, 0, 100], zoom: 80, near: 0.1, far: 1000 }}
-          style={{ touchAction: 'none', background: 'transparent', pointerEvents: 'none' }}
+          style={{ touchAction: 'none', background: 'transparent', pointerEvents: isPowered ? 'auto' : 'none' }}
           gl={{ antialias: true, alpha: true }}
         >
           <ambientLight intensity={0.02} />
@@ -1348,10 +1368,12 @@ export default function Home() {
               transform: `scale(${scale})`,
               width: sheetWidth,
               height: sheetHeight,
-              clipPath: `inset(0 ${clipInset}px)`,
+              clipPath: `inset(1px ${clipInset}px 1px ${clipInset}px)`,
               transformOrigin: 'center center',
               willChange: 'transform, clip-path',
               boxShadow: `0 8px 32px rgba(0,0,0,${0.15 * sheetBorderOpacity}), 0 2px 8px rgba(0,0,0,${0.1 * sheetBorderOpacity})`,
+              // Ensure clean edges by adding slight border radius
+              borderRadius: '1px',
             }}
           >
             {/* Sheet border - appears on zoom out */}
@@ -1457,10 +1479,12 @@ export default function Home() {
               transform: `scale(${scale})`,
               width: sheetWidth,
               height: sheetHeight,
-              clipPath: `inset(0 ${clipInset}px)`,
+              clipPath: `inset(1px ${clipInset}px 1px ${clipInset}px)`,
               transformOrigin: 'center center',
               boxShadow: `0 8px 32px rgba(0,0,0,${0.15 * sheetBorderOpacity}), 0 2px 8px rgba(0,0,0,${0.1 * sheetBorderOpacity})`,
-              border: sheetBorderOpacity > 0.1 ? '1px solid rgba(180,175,170,0.5)' : 'none',
+              border: sheetBorderOpacity > 0.1 ? '1px solid rgba(180,175,170,0.3)' : 'none',
+              // Add explicit border radius to prevent sharp edges that might show as lines
+              borderRadius: '2px',
             }}
           >
             {/* Pixel grid reveal animation - key forces remount on page change */}
@@ -1480,13 +1504,13 @@ export default function Home() {
                   style={{ filter: 'url(#noise)', mixBlendMode: 'overlay' }}
                 />
 
-                {/* Vignette - reduces when powered */}
+                {/* Vignette - reduces when powered - adjusted to prevent edge artifacts */}
                 <motion.div
                   className="pointer-events-none absolute inset-0"
                   animate={{
                     background: isPowered
-                      ? 'radial-gradient(ellipse at 50% 50%, transparent 0%, rgba(0,0,0,0.05) 100%)'
-                      : 'radial-gradient(ellipse at 50% 50%, transparent 0%, rgba(0,0,0,0.3) 100%)'
+                      ? 'radial-gradient(ellipse at 50% 50%, transparent 0%, rgba(0,0,0,0.03) 80%, rgba(0,0,0,0.05) 100%)'
+                      : 'radial-gradient(ellipse at 50% 50%, transparent 0%, rgba(0,0,0,0.2) 80%, rgba(0,0,0,0.3) 100%)'
                   }}
                   transition={{ duration: 1.2 }}
                 />
@@ -1538,6 +1562,9 @@ export default function Home() {
                     // This keeps content within the visible area after clip-path is applied
                     paddingLeft: clipInset + 24,
                     paddingRight: clipInset + 24,
+                    // Add small top/bottom padding to prevent content from touching edges
+                    paddingTop: '4px',
+                    paddingBottom: '4px',
                   }}
                 >
                   {/* Header - compact for narrower visible area */}
@@ -1661,49 +1688,43 @@ export default function Home() {
                         Let&apos;s build something great together.
                       </motion.p>
 
-                      <motion.div
-                        className="space-y-4"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: 0.4 }}
-                      >
+                      {/* Contact Links */}
+                      <div className="flex flex-col gap-4">
                         <a
                           href="mailto:hello@keino.dev"
-                          className="flex items-center gap-4 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
+                          className="flex items-center gap-3 px-4 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 rounded-lg transition-colors"
                         >
-                          <span className="text-2xl">✉</span>
+                          <span className="text-xl">✉</span>
                           <div>
-                            <p className="text-white/80 group-hover:text-white transition-colors">hello@keino.dev</p>
-                            <p className="text-white/40 text-sm">Email</p>
+                            <div className="text-white font-medium">hello@keino.dev</div>
+                            <div className="text-white/60 text-sm">Email</div>
                           </div>
                         </a>
-
                         <a
                           href="https://github.com/keino"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-4 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
+                          className="flex items-center gap-3 px-4 py-3 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg transition-colors"
                         >
-                          <span className="text-2xl">⌘</span>
+                          <span className="text-xl">⌘</span>
                           <div>
-                            <p className="text-white/80 group-hover:text-white transition-colors">github.com/keino</p>
-                            <p className="text-white/40 text-sm">GitHub</p>
+                            <div className="text-white font-medium">github.com/keino</div>
+                            <div className="text-white/60 text-sm">GitHub</div>
                           </div>
                         </a>
-
                         <a
                           href="https://linkedin.com/in/keino"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-4 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
+                          className="flex items-center gap-3 px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded-lg transition-colors"
                         >
-                          <span className="text-2xl">in</span>
+                          <span className="text-xl font-bold">in</span>
                           <div>
-                            <p className="text-white/80 group-hover:text-white transition-colors">linkedin.com/in/keino</p>
-                            <p className="text-white/40 text-sm">LinkedIn</p>
+                            <div className="text-white font-medium">linkedin.com/in/keino</div>
+                            <div className="text-white/60 text-sm">LinkedIn</div>
                           </div>
                         </a>
-                      </motion.div>
+                      </div>
                     </motion.div>
                   )}
                 </div>

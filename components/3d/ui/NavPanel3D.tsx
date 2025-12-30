@@ -115,21 +115,35 @@ export function NavButtonGroup3D({
   buttonWidth = UI3D_SIZES.navButton.width,
   buttonHeight = UI3D_SIZES.navButton.height,
 }: NavButtonGroup3DProps) {
+  // Debug: Log when buttons are rendered
+  console.log('NavButtonGroup3D rendering:', {
+    position,
+    isPowered,
+    activeId,
+    itemCount: items.length,
+    startY,
+    spacing
+  })
+
   return (
     <group position={position}>
-      {items.map((item, index) => (
-        <Neumorphic3DButton
-          key={item.id}
-          id={item.id}
-          position={[0, startY - index * spacing, 0]}
-          isPowered={isPowered}
-          isActive={activeId === item.id}
-          onClick={() => onNavigate(item.id)}
-          width={buttonWidth}
-          height={buttonHeight}
-          pattern={item.pattern || 'corner-accent'}
-        />
-      ))}
+      {items.map((item, index) => {
+        const buttonPos: [number, number, number] = [0, startY - index * spacing, 0]
+        console.log(`Button ${item.id} position:`, buttonPos)
+        return (
+          <Neumorphic3DButton
+            key={item.id}
+            id={item.id}
+            position={buttonPos}
+            isPowered={isPowered}
+            isActive={activeId === item.id}
+            onClick={() => onNavigate(item.id)}
+            width={buttonWidth}
+            height={buttonHeight}
+            pattern={item.pattern || 'corner-accent'}
+          />
+        )
+      })}
     </group>
   )
 }
