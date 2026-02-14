@@ -506,7 +506,7 @@ function LightCube({ onPositionChange }: { onPositionChange?: (pos: { x: number;
   return (
     <RigidBody
       ref={rigidBodyRef}
-      position={[2.5, 1.5, 0.5]}
+      position={[0, 1.5, 0.5]}
       colliders={false}
       mass={3.0}
       linearDamping={0.3}
@@ -649,7 +649,7 @@ function SceneContent({ onPositionChange }: { onPositionChange?: (pos: { x: numb
 }
 
 export default function Home() {
-  const [lightPos, setLightPos] = useState({ x: 65, y: 25 })
+  const [lightPos, setLightPos] = useState({ x: 50, y: 25 })
 
   return (
     <div className="fixed inset-0" style={{ backgroundColor: '#0d0d0f' }}>
