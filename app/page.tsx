@@ -525,12 +525,6 @@ function LightCube({ onPositionChange }: { onPositionChange?: (pos: { x: number;
         onPointerOver={() => { document.body.style.cursor = 'grab' }}
         onPointerOut={() => { if (!isDragging.current) document.body.style.cursor = 'default' }}
       >
-        {/* Larger invisible touch area for mobile */}
-        <mesh visible={false}>
-          <sphereGeometry args={[0.6, 8, 8]} />
-          <meshBasicMaterial transparent opacity={0} />
-        </mesh>
-
         {/* Main cube - emissive core that triggers Bloom */}
         <RoundedBox args={[0.4, 0.4, 0.4]} radius={0.05} smoothness={4}>
           <meshStandardMaterial
