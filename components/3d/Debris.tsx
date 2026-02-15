@@ -1,9 +1,10 @@
 'use client'
 
 import { useRef, useCallback, useEffect, useMemo } from 'react'
-import { useFrame, useThree, ThreeEvent } from '@react-three/fiber'
+import { useThree, ThreeEvent } from '@react-three/fiber'
 import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier'
 import { RoundedBox } from '@react-three/drei'
+import { COLLISION_CONFIGS } from '@/lib/physics-groups'
 import * as THREE from 'three'
 
 const LIFT_HEIGHT = 0.4 // How high to lift when dragging
@@ -19,7 +20,7 @@ export function Debris({
   position,
   id,
   color = '#aa4444',
-  size = 0.25
+  size = 0.4
 }: DebrisProps) {
   const { camera, gl } = useThree()
   const rigidBodyRef = useRef<RapierRigidBody>(null)
@@ -125,6 +126,7 @@ export function Debris({
       friction={0.8}
       linearDamping={2.5}
       angularDamping={2.0}
+      collisionGroups={COLLISION_CONFIGS.debris}
       userData={{ cleanable: true, id }}
     >
       <CuboidCollider args={[size / 2, size / 2, size / 2]} />
@@ -135,6 +137,12 @@ export function Debris({
         onPointerOver={() => { document.body.style.cursor = 'grab' }}
         onPointerOut={() => { if (!isDragging.current) document.body.style.cursor = 'default' }}
       >
+        {/* Invisible larger touch area for easier clicking */}
+        <mesh visible={false}>
+          <boxGeometry args={[size * 1.5, size * 1.5, size * 1.5]} />
+          <meshBasicMaterial transparent opacity={0} />
+        </mesh>
+
         <RoundedBox args={[size, size, size]} radius={0.03} smoothness={4}>
           <meshStandardMaterial
             color={color}

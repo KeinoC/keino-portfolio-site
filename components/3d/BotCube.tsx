@@ -6,7 +6,7 @@ import { RoundedBox } from '@react-three/drei'
 import { RigidBody, CuboidCollider, RapierRigidBody, CollisionPayload } from '@react-three/rapier'
 import * as THREE from 'three'
 import { computeContextSteering, isObstacle } from '@/lib/context-steering'
-import { PHYSICS_GROUPS, Z_LAYERS } from '@/lib/physics-groups'
+import { Z_LAYERS } from '@/lib/physics-groups'
 
 // Bot cube configuration
 const BOT_CUBE_SIZE = 0.4
@@ -105,12 +105,10 @@ export function BotCube({
   // Notify parent of state changes
   useEffect(() => {
     onStateChange?.(state)
-    console.log('[BotCube] State changed to:', state)
   }, [state, onStateChange])
 
   // Log mount
   useEffect(() => {
-    console.log('[BotCube] Component mounted at position:', startPosition)
   }, [])
 
   const bounds = useMemo(() => ({
@@ -225,15 +223,12 @@ export function BotCube({
     // Check if this is a page (for thruster jump)
     if (userData?.isPage) {
       nearbyPages.current.add(body)
-      console.log('[BotCube] Page detected, total nearby:', nearbyPages.current.size)
     } else if (userData?.cleanable) {
       // This is a cleanable target
       nearbyCleanables.current.add(body)
-      console.log('[BotCube] Cleanable detected, total nearby:', nearbyCleanables.current.size)
     } else if (isObstacle(body.userData)) {
       // This is an obstacle (not cleanable)
       nearbyObstacles.current.add(body)
-      console.log('[BotCube] Obstacle detected, total nearby:', nearbyObstacles.current.size)
     }
   }, [])
 
@@ -437,10 +432,8 @@ export function BotCube({
         }
 
         // Debug logging
-        console.log(`[BotCube] Scanning: ${nearbyCleanables.current.size} cleanables nearby, nearest: ${nearestDistance.toFixed(2)}`)
 
         if (nearestBody) {
-          console.log('[BotCube] Found target, approaching')
           setTargetBody(nearestBody)
           setState('approaching')
         } else if (towedBodies.current.length > 0) {
@@ -503,7 +496,6 @@ export function BotCube({
 
             // Debug: log steering when obstacles are present
             if (obstacles.length > 0) {
-              console.log(`[BotCube] Approaching: ${obstacles.length} obstacles, steer: (${moveDir.x.toFixed(2)}, ${moveDir.y.toFixed(2)})`)
             }
           }
 

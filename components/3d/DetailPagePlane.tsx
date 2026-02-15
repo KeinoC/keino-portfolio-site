@@ -35,15 +35,22 @@ export function DetailPagePlane({
   const groupRef = useRef<THREE.Group>(null)
   const currentX = useRef(position[0] + slideDistance)
 
-  // Animate slide in/out
+  // Animate slide in/out to match DOM timing (~0.6s)
   useFrame((_, delta) => {
     if (!groupRef.current || !rigidBodyRef.current) return
 
     const targetX = visible ? position[0] : position[0] + slideDistance
-    const speed = 8 * delta
+    const distance = targetX - currentX.current
 
-    // Smooth interpolation
-    currentX.current += (targetX - currentX.current) * speed
+    // Simple linear interpolation matching DOM transition duration
+    // Speed = 1/duration = 1/0.6 ≈ 1.67, but use higher for responsiveness
+    const speed = 3.0 // Completes in ~0.6 seconds
+    currentX.current += distance * speed * delta
+
+    // Snap to target when very close
+    if (Math.abs(distance) < 0.01) {
+      currentX.current = targetX
+    }
 
     // Update visual group position
     groupRef.current.position.x = currentX.current
@@ -73,7 +80,15 @@ export function DetailPagePlane({
         <CuboidCollider args={[halfWidth, halfHeight, thickness / 2]} />
       </RigidBody>
 
-      {/* Physics-only - no visual elements needed as DOM handles the page visuals */}
+      {/* Visual platform surface - dark theme matching the DOM pages */}
+      <mesh position={[0, 0, thickness / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[width, height]} />
+        <meshStandardMaterial
+          color="#1a1a1a"
+          roughness={0.8}
+          metalness={0.1}
+        />
+      </mesh>
     </group>
   )
 }

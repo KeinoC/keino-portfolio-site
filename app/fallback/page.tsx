@@ -9,12 +9,6 @@ import { Physics, RigidBody, CuboidCollider, RapierRigidBody } from '@react-thre
 // v2 uses default collision (everything collides with everything).
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
-import { PhysicsVoxelCloud } from '@/components/3d/PhysicsVoxelCloud'
-import { CubeSocket } from '@/components/3d/CubeSocket'
-import { voxelizeText } from '@/lib/voxelize-text'
-
-
-const BOUNCE_STRENGTH = 6
 
 const CUBE_SIZE = 0.4
 const CUBE_PADDING = 0.25
@@ -137,7 +131,7 @@ function InnerLight() {
 }
 
 // Draggable light cube with Rapier physics - simplified (no socket)
-function LightCube({ bodyRef, dockedRef }: { bodyRef?: { current: RapierRigidBody | null }; dockedRef?: { current: boolean } }) {
+function LightCube({ onPositionChange }: { onPositionChange?: (pos: { x: number; y: number }) => void }) {
   const { camera, gl, size } = useThree()
   const ortho = camera as THREE.OrthographicCamera
   const rigidBodyRef = useRef<RapierRigidBody>(null)
@@ -301,30 +295,11 @@ function LightCube({ bodyRef, dockedRef }: { bodyRef?: { current: RapierRigidBod
   useFrame((state, delta) => {
     if (!rigidBodyRef.current) return
 
-    // Expose rigid body ref to parent for gravity well targeting
-    // Always assign — body handle may change if Physics world rebuilds
-    if (bodyRef && bodyRef.current !== rigidBodyRef.current) {
-      bodyRef.current = rigidBodyRef.current
-    }
-
     const now = state.clock.elapsedTime
     const pos = rigidBodyRef.current.translation()
     const linvel = rigidBodyRef.current.linvel()
     const angvel = rigidBodyRef.current.angvel()
     const rb = rigidBodyRef.current
-
-    // If cube is docked in socket, freeze state machine — CubeSocket owns the body
-    if (dockedRef?.current) {
-      cubeState.current = 'active'
-      floatProgress.current = 0
-      settledDuration.current = 0
-      if (groupRef.current) groupRef.current.scale.setScalar(1)
-      if (materialRef.current) materialRef.current.emissiveIntensity = 2
-      if (light1Ref.current) light1Ref.current.intensity = 40
-      if (light2Ref.current) light2Ref.current.intensity = 25
-      paperMaterial.uniforms.uLightPos.value.set(pos.x, pos.y, pos.z)
-      return
-    }
 
     // Always reset state while dragging
     if (isDragging.current) {
@@ -518,8 +493,14 @@ function LightCube({ bodyRef, dockedRef }: { bodyRef?: { current: RapierRigidBod
       }
     }
 
-    // Update paper background glow to follow cube (world-space uniform)
-    paperMaterial.uniforms.uLightPos.value.set(pos.x, pos.y, pos.z)
+    // Project cube world position to screen percentages for background glow
+    if (onPositionChange) {
+      const projected = new THREE.Vector3(pos.x, pos.y, pos.z).project(camera)
+      onPositionChange({
+        x: (projected.x + 1) / 2 * 100,
+        y: (1 - projected.y) / 2 * 100,
+      })
+    }
   })
 
   return (
@@ -590,7 +571,7 @@ function Letter3D({
 
       <Center>
         <Text3D
-          font="/fonts/gentilis_bold.typeface.json"
+          font="/fonts/helvetiker_bold.typeface.json"
           size={LETTER_SIZE}
           height={LETTER_HEIGHT}
           curveSegments={8}
@@ -644,150 +625,22 @@ function GroundPlane() {
   )
 }
 
-// Dark paper texture background — lives in 3D scene so only background is textured
-const paperMaterial = new THREE.ShaderMaterial({
-  uniforms: {
-    uBaseColor: { value: new THREE.Color('#0d0d0f') },
-    uGrainStrength: { value: 0.012 },
-    uLightPos: { value: new THREE.Vector3(0, 1.5, 0.5) },
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    varying vec3 vWorldPos;
-    void main() {
-      vUv = uv;
-      vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform vec3 uBaseColor;
-    uniform float uGrainStrength;
-    uniform vec3 uLightPos;
-    varying vec2 vUv;
-    varying vec3 vWorldPos;
-
-    // Classic Perlin-style hash noise
-    float hash(vec2 p) {
-      vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-      p3 += dot(p3, p3.yzx + 33.33);
-      return fract((p3.x + p3.y) * p3.z);
-    }
-
-    float noise(vec2 p) {
-      vec2 i = floor(p);
-      vec2 f = fract(p);
-      f = f * f * (3.0 - 2.0 * f);
-      float a = hash(i);
-      float b = hash(i + vec2(1.0, 0.0));
-      float c = hash(i + vec2(0.0, 1.0));
-      float d = hash(i + vec2(1.0, 1.0));
-      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-    }
-
-    float fbm(vec2 p) {
-      float v = 0.0;
-      float a = 0.5;
-      for (int i = 0; i < 5; i++) {
-        v += a * noise(p);
-        p *= 2.0;
-        a *= 0.5;
-      }
-      return v;
-    }
-
-    void main() {
-      float grain = fbm(vUv * 2000.0);
-      float grain2 = fbm(vUv * 3500.0 + 42.0);
-      float fiber = noise(vec2(vUv.x * 800.0, vUv.y * 120.0)) * 0.15;
-
-      float tex = grain * 0.6 + grain2 * 0.3 + fiber * 0.1;
-      vec3 color = uBaseColor + (tex - 0.5) * uGrainStrength;
-
-      // Soft vignette
-      vec2 vig = vUv - 0.5;
-      float vigAmount = 1.0 - dot(vig, vig) * 0.6;
-      color *= vigAmount;
-
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `,
-})
-
-function PaperBackground() {
-  const { viewport } = useThree()
-  return (
-    <mesh position={[0, 0, -0.5]}>
-      <planeGeometry args={[viewport.width * 2, viewport.height * 2]} />
-      <primitive object={paperMaterial} attach="material" />
-    </mesh>
-  )
-}
-
 
 // Scene content wrapper
-function SceneContent({
-  onNavigate,
-  crumbled,
-  crumbleTriggered,
-  voxelPositions,
-  voxelSize,
-  explosionForce,
-  attractionForce,
-  spiralForce,
-  onCubeDockedChange,
-  cubeDocked,
-}: {
-  onNavigate?: (href: string) => void
-  crumbled: boolean
-  crumbleTriggered: boolean
-  voxelPositions: THREE.Vector3[]
-  voxelSize: number
-  explosionForce: number
-  attractionForce: number
-  spiralForce: number
-  onCubeDockedChange?: (docked: boolean) => void
-  cubeDocked: boolean
-}) {
-  const lightCubeBodyRef = useRef<RapierRigidBody | null>(null)
-  const dockedRef = useRef(false)
-
-  const handleDockedChange = useCallback((docked: boolean) => {
-    dockedRef.current = docked
-    onCubeDockedChange?.(docked)
-  }, [onCubeDockedChange])
-
+function SceneContent({ onPositionChange }: { onPositionChange?: (pos: { x: number; y: number }) => void }) {
   return (
     <>
-      <PaperBackground />
       <Physics gravity={[0, 0, -9.8]} timeStep={1/240}>
         <GroundPlane />
-        {!crumbled && <Text3DKeino />}
-        {crumbled && voxelPositions.length > 0 && (
-          <PhysicsVoxelCloud
-            positions={voxelPositions}
-            voxelSize={voxelSize}
-            crumble={crumbleTriggered}
-            bounceStrength={explosionForce}
-            attractionForce={attractionForce}
-            color="#2a2a2a"
-            metalness={0.15}
-            roughness={0.35}
-            spiralForce={spiralForce}
-            lightCubeBodyRef={lightCubeBodyRef}
-          />
-        )}
-        <LightCube bodyRef={lightCubeBodyRef} dockedRef={dockedRef} />
+        <Text3DKeino />
+        <LightCube onPositionChange={onPositionChange} />
       </Physics>
-
-      <CubeSocket bodyRef={lightCubeBodyRef} onDockedChange={handleDockedChange} onNavigate={onNavigate} />
 
       <EffectComposer>
         <Bloom
-          intensity={0.5}
-          luminanceThreshold={0.9}
-          luminanceSmoothing={0.025}
-          radius={0.4}
+          intensity={1.5}
+          luminanceThreshold={0.2}
+          luminanceSmoothing={0.9}
           mipmapBlur
         />
       </EffectComposer>
@@ -795,105 +648,19 @@ function SceneContent({
   )
 }
 
-/** Preloads voxel positions for text (runs once on mount) */
-function useVoxelText(text: string, resolution: number) {
-  const [positions, setPositions] = useState<THREE.Vector3[]>([])
-
-  useEffect(() => {
-    let cancelled = false
-    voxelizeText(text, { resolution }).then((voxels) => {
-      if (!cancelled) setPositions(voxels)
-    })
-    return () => { cancelled = true }
-  }, [text, resolution])
-
-  return positions
-}
-
-const STORAGE_KEY = 'keino-voxel-settings'
-const DEFAULTS = { resolution: 5, explosionForce: 6, attractionForce: 4, spiralForce: 30 }
-
-function loadSettings() {
-  if (typeof window === 'undefined') return DEFAULTS
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return DEFAULTS
-    return { ...DEFAULTS, ...JSON.parse(raw) }
-  } catch { return DEFAULTS }
-}
-
-function saveSettings(s: typeof DEFAULTS) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch {}
-}
-
-type PageId = 'work' | 'about' | 'experience' | 'lab' | 'contact'
-
-const PAGE_CONTENT: Record<PageId, { title: string; description: string }> = {
-  work: { title: 'Work', description: 'Selected projects and case studies.' },
-  about: { title: 'About', description: 'Designer and developer based in Brooklyn, NY.' },
-  experience: { title: 'Experience', description: 'Professional background and journey.' },
-  lab: { title: 'Lab', description: 'Experiments, prototypes, and explorations.' },
-  contact: { title: 'Contact', description: 'Get in touch.' },
-}
-
-// Map nav hrefs to page ids
-const HREF_TO_PAGE: Record<string, PageId> = {
-  '/work': 'work',
-  '/about': 'about',
-  '/experience': 'experience',
-  '/experiment': 'lab',
-  '/contact': 'contact',
-}
-
 export default function Home() {
-  const [crumbled, setCrumbled] = useState(false)
-  const [crumbleTriggered, setCrumbleTriggered] = useState(false)
-  const [activePage, setActivePage] = useState<PageId | null>(null)
-  const [cubeDocked, setCubeDocked] = useState(false)
-  const [initialized, setInitialized] = useState(false)
-  const [resolution, setResolution] = useState(DEFAULTS.resolution)
-  const [explosionForce, setExplosionForce] = useState(DEFAULTS.explosionForce)
-  const [attractionForce, setAttractionForce] = useState(DEFAULTS.attractionForce)
-  const [spiralForce, setSpiralForce] = useState(DEFAULTS.spiralForce)
-
-  // Hydrate from localStorage on mount
-  useEffect(() => {
-    const s = loadSettings()
-    setResolution(s.resolution)
-    setExplosionForce(s.explosionForce)
-    setAttractionForce(s.attractionForce)
-    setSpiralForce(s.spiralForce)
-    setInitialized(true)
-  }, [])
-
-  // Persist on change (skip initial hydration)
-  useEffect(() => {
-    if (!initialized) return
-    saveSettings({ resolution, explosionForce, attractionForce, spiralForce })
-  }, [initialized, resolution, explosionForce, attractionForce, spiralForce])
-
-  const voxelSize = useMemo(() => 0.14 - (resolution - 1) / 9 * 0.07, [resolution])
-  const voxelPositions = useVoxelText('KEINO', voxelSize)
-
-  const handleNavigate = useCallback((href: string) => {
-    const pageId = HREF_TO_PAGE[href]
-    if (!pageId) return
-    if (!crumbled) {
-      setCrumbled(true)
-      setCrumbleTriggered(true)
-    }
-    // Delay page reveal slightly so crumble animation starts first
-    setTimeout(() => setActivePage(pageId), 400)
-  }, [crumbled])
-
-  const handleReset = useCallback(() => {
-    setActivePage(null)
-    setCrumbled(false)
-    setCrumbleTriggered(false)
-  }, [])
+  const [lightPos, setLightPos] = useState({ x: 50, y: 25 })
 
   return (
     <div className="fixed inset-0" style={{ backgroundColor: '#0d0d0f' }}>
+      {/* Circular light glow that follows the cube */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(circle at ${lightPos.x}% ${lightPos.y}%, rgba(255,250,240,0.18) 0%, rgba(255,245,230,0.08) 18%, rgba(255,240,220,0.03) 35%, transparent 60%)`
+        }}
+      />
+
       <Canvas
         orthographic
         camera={{ position: [0, 0, 100], zoom: 80, near: 0.1, far: 1000 }}
@@ -903,40 +670,9 @@ export default function Home() {
         <ambientLight intensity={0.08} />
         <directionalLight color="#ffffff" intensity={0.15} position={[0, 0, 10]} />
         <Suspense fallback={null}>
-          <SceneContent
-            onNavigate={handleNavigate}
-            crumbled={crumbled}
-            crumbleTriggered={crumbleTriggered}
-            voxelPositions={voxelPositions}
-            voxelSize={voxelSize}
-            explosionForce={explosionForce}
-            attractionForce={attractionForce}
-            spiralForce={spiralForce / 100}
-            onCubeDockedChange={setCubeDocked}
-            cubeDocked={cubeDocked}
-          />
+          <SceneContent onPositionChange={setLightPos} />
         </Suspense>
       </Canvas>
-
-      {/* Page content overlay */}
-      {activePage && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-          <div className="pointer-events-auto max-w-2xl w-full mx-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <button
-              onClick={handleReset}
-              className="mb-6 text-white/40 hover:text-white/70 text-sm transition-colors"
-            >
-              &larr; Back
-            </button>
-            <h1 className="text-4xl font-extrabold uppercase tracking-widest text-white/80 mb-4">
-              {PAGE_CONTENT[activePage].title}
-            </h1>
-            <p className="text-white/50 text-lg">
-              {PAGE_CONTENT[activePage].description}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

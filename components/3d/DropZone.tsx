@@ -9,14 +9,12 @@ interface DropZoneProps {
   position: [number, number, number]
   size: [number, number]
   onItemDropped?: () => void
-  label?: string
 }
 
 export function DropZone({
   position,
   size,
-  onItemDropped,
-  label = 'DROP'
+  onItemDropped
 }: DropZoneProps) {
   const [itemCount, setItemCount] = useState(0)
   const [pulseIntensity, setPulseIntensity] = useState(0)

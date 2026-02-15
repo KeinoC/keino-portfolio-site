@@ -49,6 +49,64 @@ body {
   height: 100%;
 }
 
+/* Paper texture grain — SVG feTurbulence noise, overlay blend for dark backgrounds */
+.paper-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.35;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='5' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 1024px 1024px;
+}
+
+/* Paper fiber lines — faint directional texture */
+.paper-fibers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.08;
+  mix-blend-mode: soft-light;
+  background:
+    repeating-linear-gradient(
+      3deg,
+      transparent,
+      transparent 50px,
+      rgba(220, 200, 170, 0.4) 50px,
+      transparent 51px
+    ),
+    repeating-linear-gradient(
+      177deg,
+      transparent,
+      transparent 90px,
+      rgba(200, 180, 150, 0.25) 90px,
+      transparent 91px
+    ),
+    repeating-linear-gradient(
+      92deg,
+      transparent,
+      transparent 130px,
+      rgba(180, 160, 130, 0.2) 130px,
+      transparent 131px
+    );
+}
+
+/* Vignette — dark edges for printed-paper depth */
+.paper-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse 70% 60% at 50% 45%,
+    transparent 0%,
+    rgba(8, 7, 6, 0.35) 60%,
+    rgba(3, 3, 3, 0.8) 100%
+  );
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

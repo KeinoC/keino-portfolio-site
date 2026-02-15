@@ -54,10 +54,10 @@ export const COLLISION_CONFIGS = {
     PHYSICS_GROUPS.LETTERS | PHYSICS_GROUPS.CUBE | PHYSICS_GROUPS.DEBRIS | PHYSICS_GROUPS.BOT
   ),
 
-  // Pages collide with: cube (for bouncing off), bot (for jumping onto)
+  // Pages collide with: cube, bot, letters, debris (can land on pages and fall off edges)
   pages: interactionGroups(
     PHYSICS_GROUPS.PAGES,
-    PHYSICS_GROUPS.CUBE | PHYSICS_GROUPS.BOT
+    PHYSICS_GROUPS.CUBE | PHYSICS_GROUPS.BOT | PHYSICS_GROUPS.LETTERS | PHYSICS_GROUPS.DEBRIS
   ),
 
   // Debris collides with: floor, letters, cube, walls, other debris, bot (NOT platform - falls to marble)
