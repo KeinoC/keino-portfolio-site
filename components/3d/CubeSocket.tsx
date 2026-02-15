@@ -29,9 +29,10 @@ const SPEED_SKIP_THRESHOLD = 8.0
 const ATTRACT_LERP = 0.02       // position blend per frame (smooth drift toward socket)
 
 // --- Rotation & snap ---
-const SCROLL_SENSITIVITY = 0.008
-const FREE_LERP = 0.12       // smooth follow during interaction
-const SNAP_LERP = 0.06       // slower, deliberate ease into snap position
+const SCROLL_SENSITIVITY = 0.004
+const FREE_LERP = 0.10       // smooth follow during interaction
+const SNAP_LERP = 0.04       // slower, deliberate ease into snap position
+const FADE_SPEED = 0.06      // opacity lerp per frame for segment transitions
 
 // Active position: directly left of the cube/dock center = angle π
 const ACTIVE_ANGLE = Math.PI
@@ -39,12 +40,14 @@ const ITEM_COUNT = 5
 const ITEM_STEP = (2 * Math.PI) / ITEM_COUNT // 2π/5 between items
 
 const NAV_ITEMS = [
-  { label: 'work', href: '/work' },
-  { label: 'about', href: '/about' },
-  { label: 'experience', href: '/experience' },
-  { label: 'lab', href: '/experiment' },
-  { label: 'contact', href: '/contact' },
+  { label: 'work', href: '/work', title: 'Work', description: 'Selected projects and case studies.' },
+  { label: 'about', href: '/about', title: 'About', description: 'Designer & developer in Brooklyn, NY.' },
+  { label: 'experience', href: '/experience', title: 'Experience', description: 'Professional background and journey.' },
+  { label: 'lab', href: '/experiment', title: 'Lab', description: 'Experiments, prototypes, explorations.' },
+  { label: 'contact', href: '/contact', title: 'Contact', description: 'Get in touch.' },
 ]
+
+const SEGMENT_TEXT_RADIUS_PCT = 0.45 // position text at 45% of outer radius
 
 interface CubeSocketProps {
   bodyRef: React.RefObject<RapierRigidBody | null>
@@ -77,6 +80,99 @@ function activeItemIndex(currentRotation: number): number {
 
 // Animation speed for active state transitions
 const ACTIVE_LERP_SPEED = 0.08
+
+// Animated arc segment — fades opacity between active (transparent) and inactive (black)
+function SegmentArc({
+  outerRadius,
+  thetaStart,
+  thetaLength,
+  isActive,
+}: {
+  outerRadius: number
+  thetaStart: number
+  thetaLength: number
+  isActive: boolean
+}) {
+  const matRef = useRef<THREE.MeshBasicMaterial>(null)
+
+  useFrame(() => {
+    if (!matRef.current) return
+    const target = isActive ? 0 : 0.85
+    matRef.current.opacity += (target - matRef.current.opacity) * FADE_SPEED
+  })
+
+  return (
+    <mesh position={[0, 0, -0.01]} raycast={() => null}>
+      <ringGeometry args={[0, outerRadius, 64, 1, thetaStart, thetaLength]} />
+      <meshBasicMaterial ref={matRef} color="#000000" transparent opacity={0.85} side={THREE.DoubleSide} />
+    </mesh>
+  )
+}
+
+// Animated segment text — fades in/out with active state
+function SegmentText({
+  title,
+  description,
+  angle,
+  radius,
+  isActive,
+}: {
+  title: string
+  description: string
+  angle: number
+  radius: number
+  isActive: boolean
+}) {
+  const titleRef = useRef<THREE.Mesh>(null)
+  const descRef = useRef<THREE.Mesh>(null)
+
+  useFrame(() => {
+    const target = isActive ? 0 : 1
+    if (titleRef.current) {
+      const mat = titleRef.current.material as THREE.Material
+      mat.opacity += (target - mat.opacity) * FADE_SPEED
+    }
+    if (descRef.current) {
+      const mat = descRef.current.material as THREE.Material
+      mat.opacity += (target - mat.opacity) * FADE_SPEED
+    }
+  })
+
+  const x = Math.cos(angle) * radius
+  const y = Math.sin(angle) * radius
+  let rot = angle - Math.PI / 2
+  if (Math.sin(angle) < 0) rot += Math.PI
+
+  return (
+    <group position={[x, y, 0.01]} rotation={[0, 0, rot]}>
+      <Text
+        ref={titleRef}
+        font="/fonts/inter-thin.ttf"
+        fontSize={0.18}
+        anchorX="center"
+        anchorY="middle"
+        color="#e0e0e0"
+        letterSpacing={0.12}
+        material-transparent
+      >
+        {title.toUpperCase()}
+      </Text>
+      <Text
+        ref={descRef}
+        font="/fonts/inter-thin.ttf"
+        fontSize={0.07}
+        anchorX="center"
+        anchorY="middle"
+        color="#777777"
+        position={[0, -0.22, 0]}
+        letterSpacing={0.02}
+        material-transparent
+      >
+        {description}
+      </Text>
+    </group>
+  )
+}
 
 // Individual nav label around the ring
 function NavLabel({
@@ -199,8 +295,10 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
 
   // Active item index for highlighting + auto-navigate
   const [activeIdx, setActiveIdx] = useState(0)
+  const [visualActiveIdx, setVisualActiveIdx] = useState(0) // only updates on settle
   const activeIdxRef = useRef(0)
   const hasInteracted = useRef(false) // skip auto-navigate on initial dock
+  const pendingNavigate = useRef(false) // fire navigate once when wheel settles
 
   // Labels group ref
   const labelsGroupRef = useRef<THREE.Group>(null)
@@ -249,6 +347,7 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
       if (dist < RING_RADIUS + 0.8) {
         e.preventDefault()
         hasInteracted.current = true
+        pendingNavigate.current = true
         isSnapping.current = false
         targetRotation.current += e.deltaY * SCROLL_SENSITIVITY
 
@@ -258,7 +357,7 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
           targetRotation.current = nearestSnapRotation(targetRotation.current)
           isSnapping.current = true
           scrollTimerRef.current = null
-        }, 200)
+        }, 350)
       }
     }
 
@@ -277,6 +376,7 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
     if (!dockedRef.current) return
     e.stopPropagation()
     hasInteracted.current = true
+    pendingNavigate.current = true
     isDragging.current = true
     isSnapping.current = false
 
@@ -343,11 +443,9 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
     return () => window.removeEventListener('blur', handleBlur)
   }, [snapToNearest])
 
-  // Auto-navigate when active item changes after user interaction
-  useEffect(() => {
-    if (!docked || !hasInteracted.current) return
-    onNavigate?.(NAV_ITEMS[activeIdx].href)
-  }, [activeIdx, docked, onNavigate])
+  // Navigate ref — avoid stale closure in useFrame
+  const onNavigateRef = useRef(onNavigate)
+  onNavigateRef.current = onNavigate
 
   useFrame(() => {
     if (!bodyRef.current || !groupRef.current) return
@@ -373,6 +471,18 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
       if (idx !== activeIdxRef.current) {
         activeIdxRef.current = idx
         setActiveIdx(idx)
+      }
+
+      // Update visual state + fire navigate once when wheel settles
+      if (isSnapping.current) {
+        const settled = Math.abs(rotationAngle.current - targetRotation.current) < 0.02
+        if (settled) {
+          setVisualActiveIdx(idx)
+          if (pendingNavigate.current) {
+            pendingNavigate.current = false
+            onNavigateRef.current?.(NAV_ITEMS[idx].href)
+          }
+        }
       }
     }
 
@@ -468,6 +578,29 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
           </mesh>
 
           <group ref={labelsGroupRef}>
+            {/* Filled arc segments — only fade on settle via visualActiveIdx */}
+            {Array.from({ length: ITEM_COUNT }).map((_, i) => (
+              <SegmentArc
+                key={`seg-${i}`}
+                outerRadius={contentOuterRadius}
+                thetaStart={(i - 0.5) * ITEM_STEP}
+                thetaLength={ITEM_STEP}
+                isActive={i === visualActiveIdx}
+              />
+            ))}
+
+            {/* Segment title/description — only fade on settle via visualActiveIdx */}
+            {NAV_ITEMS.map((item, i) => (
+              <SegmentText
+                key={`seg-text-${i}`}
+                title={item.title}
+                description={item.description}
+                angle={(i / ITEM_COUNT) * Math.PI * 2}
+                radius={contentOuterRadius * SEGMENT_TEXT_RADIUS_PCT}
+                isActive={i === visualActiveIdx}
+              />
+            ))}
+
             {NAV_ITEMS.map((item, i) => {
               const baseAngle = (i / ITEM_COUNT) * Math.PI * 2
               return (
