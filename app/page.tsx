@@ -845,6 +845,9 @@ const HREF_TO_PAGE: Record<string, PageId> = {
   '/contact': 'contact',
 }
 
+// Pages with in-wedge content (no crumble/overlay needed)
+const IN_WEDGE_PAGES = new Set<PageId>(['about', 'experience'])
+
 export default function Home() {
   const [crumbled, setCrumbled] = useState(false)
   const [crumbleTriggered, setCrumbleTriggered] = useState(false)
@@ -878,13 +881,23 @@ export default function Home() {
   const handleNavigate = useCallback((href: string) => {
     const pageId = HREF_TO_PAGE[href]
     if (!pageId) return
+    // Pages with in-wedge content are handled by WedgeContent in CubeSocket
+    if (IN_WEDGE_PAGES.has(pageId)) {
+      // Clear any previous overlay page
+      if (activePage) {
+        setActivePage(null)
+        setCrumbled(false)
+        setCrumbleTriggered(false)
+      }
+      return
+    }
     if (!crumbled) {
       setCrumbled(true)
       setCrumbleTriggered(true)
     }
     // Delay page reveal slightly so crumble animation starts first
     setTimeout(() => setActivePage(pageId), 400)
-  }, [crumbled])
+  }, [crumbled, activePage])
 
   const handleReset = useCallback(() => {
     setActivePage(null)

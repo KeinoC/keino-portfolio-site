@@ -3,12 +3,15 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Text } from '@react-three/drei'
+import { WedgeContent } from '@/components/3d/WedgeContent'
 import * as THREE from 'three'
 import type { RapierRigidBody } from '@react-three/rapier'
 
 // --- Ring & layout ---
 const RING_RADIUS = 1.2
-const TEXT_RADIUS = RING_RADIUS + 0.15
+const BUTTON_OUTER_RADIUS = 1.70
+const TEXT_RADIUS = (RING_RADIUS + BUTTON_OUTER_RADIUS) / 2  // centered in nav band
+const BUTTON_Z = 0.02                           // behind nav text (z=0.05)
 const FONT_SIZE = 0.11
 const SOCKET_EDGE_PADDING = 0.8
 const SOCKET_Z = 0.25
@@ -81,13 +84,41 @@ function activeItemIndex(currentRotation: number): number {
 // Animation speed for active state transitions
 const ACTIVE_LERP_SPEED = 0.08
 
+// Nav button band segment — lighter fill for inactive, darker for active
+function NavButtonSegment({
+  thetaStart,
+  thetaLength,
+  isActive,
+}: {
+  thetaStart: number
+  thetaLength: number
+  isActive: boolean
+}) {
+  const matRef = useRef<THREE.MeshBasicMaterial>(null)
+
+  useFrame(() => {
+    if (!matRef.current) return
+    const target = isActive ? 0.5 : 0.15
+    matRef.current.opacity += (target - matRef.current.opacity) * FADE_SPEED
+  })
+
+  return (
+    <mesh position={[0, 0, BUTTON_Z]} raycast={() => null}>
+      <ringGeometry args={[RING_RADIUS, BUTTON_OUTER_RADIUS, 64, 1, thetaStart, thetaLength]} />
+      <meshBasicMaterial ref={matRef} color="#000000" transparent opacity={0.15} side={THREE.DoubleSide} />
+    </mesh>
+  )
+}
+
 // Animated arc segment — fades opacity between active (transparent) and inactive (black)
 function SegmentArc({
+  innerRadius,
   outerRadius,
   thetaStart,
   thetaLength,
   isActive,
 }: {
+  innerRadius: number
   outerRadius: number
   thetaStart: number
   thetaLength: number
@@ -98,12 +129,18 @@ function SegmentArc({
   useFrame(() => {
     if (!matRef.current) return
     const target = isActive ? 0 : 0.85
-    matRef.current.opacity += (target - matRef.current.opacity) * FADE_SPEED
+    if (target > matRef.current.opacity) {
+      // Going opaque (rotation started) — snap instantly so no see-through gap
+      matRef.current.opacity = target
+    } else {
+      // Going transparent (settled as active) — fade reveal
+      matRef.current.opacity += (target - matRef.current.opacity) * FADE_SPEED
+    }
   })
 
   return (
-    <mesh position={[0, 0, -0.01]} raycast={() => null}>
-      <ringGeometry args={[0, outerRadius, 64, 1, thetaStart, thetaLength]} />
+    <mesh position={[0, 0, isActive ? -1 : 0.02]} raycast={() => null}>
+      <ringGeometry args={[innerRadius, outerRadius, 64, 1, thetaStart, thetaLength]} />
       <meshBasicMaterial ref={matRef} color="#000000" transparent opacity={0.85} side={THREE.DoubleSide} />
     </mesh>
   )
@@ -127,14 +164,22 @@ function SegmentText({
   const descRef = useRef<THREE.Mesh>(null)
 
   useFrame(() => {
-    const target = isActive ? 0 : 1
-    if (titleRef.current) {
-      const mat = titleRef.current.material as THREE.Material
-      mat.opacity += (target - mat.opacity) * FADE_SPEED
-    }
-    if (descRef.current) {
-      const mat = descRef.current.material as THREE.Material
-      mat.opacity += (target - mat.opacity) * FADE_SPEED
+    // Active text: hide immediately so black arcs cover the area cleanly
+    // Non-active text: fade in gradually
+    if (isActive) {
+      if (titleRef.current) { titleRef.current.visible = false }
+      if (descRef.current) { descRef.current.visible = false }
+    } else {
+      if (titleRef.current) {
+        titleRef.current.visible = true
+        const mat = titleRef.current.material as THREE.Material
+        mat.opacity += (1 - mat.opacity) * FADE_SPEED
+      }
+      if (descRef.current) {
+        descRef.current.visible = true
+        const mat = descRef.current.material as THREE.Material
+        mat.opacity += (1 - mat.opacity) * FADE_SPEED
+      }
     }
   })
 
@@ -144,7 +189,7 @@ function SegmentText({
   if (Math.sin(angle) < 0) rot += Math.PI
 
   return (
-    <group position={[x, y, 0.01]} rotation={[0, 0, rot]}>
+    <group position={[x, y, 0.03]} rotation={[0, 0, rot]}>
       <Text
         ref={titleRef}
         font="/fonts/inter-thin.ttf"
@@ -174,103 +219,104 @@ function SegmentText({
   )
 }
 
-// Individual nav label around the ring
+// Circular text constants
+const NAV_FONT_SIZE = 0.11
+const CHAR_ANGLE_STEP = 0.055  // radians between character centers along the arc
+// Nav label — characters placed individually along the ring arc
 function NavLabel({
   label,
-  href,
   angle,
   isActive,
-  onNavigate,
+  rotationRef,
+  onItemClick,
 }: {
   label: string
-  href: string
   angle: number
   isActive: boolean
-  onNavigate?: (href: string) => void
+  rotationRef: React.RefObject<number>
+  onItemClick?: () => void
 }) {
   const [hovered, setHovered] = useState(false)
-  const glowRef = useRef<THREE.Mesh>(null)
-  const lineRef = useRef<THREE.Mesh>(null)
+  const charRefs = useRef<(THREE.Mesh | null)[]>([])
+  const hoverMatRef = useRef<THREE.MeshBasicMaterial>(null)
+  const brightnessRef = useRef(0.40) // start at inactive default
+  const isActiveRef = useRef(isActive)
+  const hoveredRef = useRef(false)
+  isActiveRef.current = isActive
+  hoveredRef.current = hovered
 
-  const x = Math.cos(angle) * TEXT_RADIUS
-  const y = Math.sin(angle) * TEXT_RADIUS
+  const chars = label.toUpperCase().split('')
 
-  let labelRotation = angle - Math.PI / 2
-  if (Math.sin(angle) < 0) {
-    labelRotation += Math.PI
-  }
-
-  // Determine text color from state (React-driven, not useFrame)
-  const textColor = isActive
-    ? (hovered ? '#ffffff' : '#e0e0e0')
-    : (hovered ? '#5a5a5a' : '#3a3a3a')
-
-  // Imperative animation for glow/underline only
   useFrame(() => {
-    const glowMat = glowRef.current?.material as THREE.MeshBasicMaterial | undefined
-    const lineMat = lineRef.current?.material as THREE.MeshBasicMaterial | undefined
+    // Dynamic flip based on world angle (local + group rotation)
+    const worldAngle = angle + (rotationRef.current ?? 0)
+    const sinW = Math.sin(worldAngle)
+    // Bottom half: reverse char order + rotate 180° so text reads left-to-right
+    const needsFlip = sinW < -0.05
 
-    if (glowMat) {
-      const targetOpacity = isActive ? 0.06 : 0
-      glowMat.opacity += (targetOpacity - glowMat.opacity) * ACTIVE_LERP_SPEED
+    // Reposition characters based on current world angle
+    for (let i = 0; i < chars.length; i++) {
+      const mesh = charRefs.current[i]
+      if (!mesh) continue
+      const offset = (i - (chars.length - 1) / 2) * CHAR_ANGLE_STEP
+      const charAngle = angle + (needsFlip ? -offset : offset)
+      mesh.position.set(
+        Math.cos(charAngle) * TEXT_RADIUS,
+        Math.sin(charAngle) * TEXT_RADIUS,
+        0.05
+      )
+      let charRot = charAngle - Math.PI / 2
+      if (needsFlip) charRot += Math.PI
+      mesh.rotation.set(0, 0, charRot)
     }
 
-    if (lineMat && lineRef.current) {
-      const targetScaleX = isActive ? 1 : 0
-      const targetOpacity = isActive ? 0.7 : 0
-      lineRef.current.scale.x += (targetScaleX - lineRef.current.scale.x) * ACTIVE_LERP_SPEED
-      lineMat.opacity += (targetOpacity - lineMat.opacity) * ACTIVE_LERP_SPEED
+    // Hover background opacity
+    if (hoverMatRef.current) {
+      const targetOpacity = hoveredRef.current ? 0.15 : 0
+      hoverMatRef.current.opacity += (targetOpacity - hoverMatRef.current.opacity) * ACTIVE_LERP_SPEED
+    }
+
+    // Text brightness lerp
+    const targetBrightness = isActiveRef.current
+      ? (hoveredRef.current ? 1.0 : 0.82)
+      : (hoveredRef.current ? 0.53 : 0.40)
+    brightnessRef.current += (targetBrightness - brightnessRef.current) * ACTIVE_LERP_SPEED
+    const b = brightnessRef.current
+    for (const mesh of charRefs.current) {
+      if (mesh) {
+        (mesh.material as THREE.MeshBasicMaterial).color.setScalar(b)
+      }
     }
   })
 
   return (
-    <group
-      position={[x, y, 0]}
-      rotation={[0, 0, labelRotation]}
-    >
-      {/* Hit area */}
+    <group>
+      {/* Full segment hit area + hover background */}
       <mesh
-        onPointerOver={(e) => {
-          e.stopPropagation()
-          setHovered(true)
-          document.body.style.cursor = 'pointer'
-        }}
-        onPointerOut={(e) => {
-          e.stopPropagation()
-          setHovered(false)
-          document.body.style.cursor = 'default'
-        }}
-        onClick={(e) => {
-          e.stopPropagation()
-          onNavigate?.(href)
-        }}
+        position={[0, 0, 0.03]}
+        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer' }}
+        onPointerOut={(e) => { e.stopPropagation(); setHovered(false); document.body.style.cursor = 'default' }}
+        onClick={(e) => { e.stopPropagation(); onItemClick?.() }}
       >
-        <planeGeometry args={[0.5, 0.18]} />
-        <meshBasicMaterial transparent opacity={0} />
+        <ringGeometry args={[RING_RADIUS, BUTTON_OUTER_RADIUS, 64, 1, angle - ITEM_STEP / 2, ITEM_STEP]} />
+        <meshBasicMaterial ref={hoverMatRef} color="#e0e0e0" transparent opacity={0} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* Glow backdrop — caught by Bloom */}
-      <mesh ref={glowRef} position={[0, 0, -0.001]}>
-        <planeGeometry args={[0.55, 0.14]} />
-        <meshBasicMaterial color="#e0e0e0" transparent opacity={0} toneMapped={false} />
-      </mesh>
-
-      {/* Underline indicator */}
-      <mesh ref={lineRef} position={[0, -0.07, 0.001]} scale={[0, 1, 1]}>
-        <planeGeometry args={[0.35, 0.006]} />
-        <meshBasicMaterial color="#e0e0e0" transparent opacity={0} toneMapped={false} />
-      </mesh>
-
-      <Text
-        font="/fonts/inter-thin.ttf"
-        fontSize={isActive ? FONT_SIZE * 1.15 : FONT_SIZE}
-        anchorX="center"
-        anchorY="middle"
-        color={textColor}
-        letterSpacing={0.08}
-      >
-        {label}
-      </Text>
+      {/* Characters — positions/rotations updated in useFrame */}
+      {chars.map((char, i) => (
+        <Text
+          key={i}
+          ref={(el) => { charRefs.current[i] = el }}
+          position={[0, 0, 0.05]}
+          font="/fonts/inter-thin.ttf"
+          fontSize={NAV_FONT_SIZE}
+          anchorX="center"
+          anchorY="middle"
+          color="#666666"
+        >
+          {char}
+        </Text>
+      ))}
     </group>
   )
 }
@@ -327,6 +373,19 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
     isSnapping.current = true
   }, [])
 
+  /** Rotate ring to place item at index i in the active position */
+  const rotateToItem = useCallback((i: number) => {
+    hasInteracted.current = true
+    pendingNavigate.current = true
+    setVisualActiveIdx(-1)
+    // Shortest-path rotation to place item i at ACTIVE_ANGLE
+    const desired = ACTIVE_ANGLE - i * ITEM_STEP
+    const diff = desired - rotationAngle.current
+    const norm = ((diff + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI
+    targetRotation.current = rotationAngle.current + norm
+    isSnapping.current = true
+  }, [])
+
   // Scroll handler — only active when docked
   useEffect(() => {
     if (!docked) return
@@ -349,6 +408,7 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
         hasInteracted.current = true
         pendingNavigate.current = true
         isSnapping.current = false
+        setVisualActiveIdx(-1) // all arcs go black during rotation
         targetRotation.current += e.deltaY * SCROLL_SENSITIVITY
 
         // Debounced snap — clear previous timer, set new one
@@ -379,6 +439,7 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
     pendingNavigate.current = true
     isDragging.current = true
     isSnapping.current = false
+    setVisualActiveIdx(-1) // all arcs go black during drag rotation
 
     const ne = (e as unknown as { nativeEvent: PointerEvent }).nativeEvent
     if (!ne) return
@@ -477,6 +538,7 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
       if (isSnapping.current) {
         const settled = Math.abs(rotationAngle.current - targetRotation.current) < 0.02
         if (settled) {
+          isSnapping.current = false
           setVisualActiveIdx(idx)
           if (pendingNavigate.current) {
             pendingNavigate.current = false
@@ -555,33 +617,68 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
         <>
           {/* Invisible drag hit area */}
           <mesh onPointerDown={handlePointerDown}>
-            <ringGeometry args={[RING_RADIUS - 0.4, RING_RADIUS + 0.4, 64]} />
+            <ringGeometry args={[RING_RADIUS - 0.4, BUTTON_OUTER_RADIUS + 0.1, 64]} />
             <meshBasicMaterial transparent opacity={0} side={THREE.DoubleSide} />
           </mesh>
 
-          {/* Nav ring (thin) */}
+          {/* Nav ring (inner) */}
           <mesh raycast={() => null}>
-            <ringGeometry args={[RING_RADIUS - 0.008, RING_RADIUS, 64]} />
-            <meshBasicMaterial color="#333333" transparent opacity={0.5} side={THREE.DoubleSide} />
+            <ringGeometry args={[RING_RADIUS - 0.006, RING_RADIUS, 64]} />
+            <meshBasicMaterial color="#666666" transparent opacity={0.6} side={THREE.DoubleSide} />
           </mesh>
+
+          {/* Outer button ring */}
+          <mesh raycast={() => null}>
+            <ringGeometry args={[BUTTON_OUTER_RADIUS - 0.006, BUTTON_OUTER_RADIUS, 64]} />
+            <meshBasicMaterial color="#666666" transparent opacity={0.6} side={THREE.DoubleSide} />
+          </mesh>
+
+          {/* Tick marks at each nav position on the ring */}
+          {Array.from({ length: ITEM_COUNT }).map((_, i) => {
+            const a = (i / ITEM_COUNT) * Math.PI * 2
+            const tickLen = 0.08
+            const r = RING_RADIUS + tickLen / 2
+            return (
+              <mesh
+                key={`tick-${i}`}
+                position={[Math.cos(a) * r, Math.sin(a) * r, 0.01]}
+                rotation={[0, 0, a]}
+                raycast={() => null}
+              >
+                <planeGeometry args={[tickLen, 0.004]} />
+                <meshBasicMaterial color="#888888" transparent opacity={0.7} side={THREE.DoubleSide} />
+              </mesh>
+            )
+          })}
 
           {/* Inner content circle */}
           <mesh raycast={() => null}>
             <ringGeometry args={[contentInnerRadius - 0.008, contentInnerRadius, 128]} />
-            <meshBasicMaterial color="#333333" transparent opacity={0.3} side={THREE.DoubleSide} />
+            <meshBasicMaterial color="#888888" transparent opacity={0.5} side={THREE.DoubleSide} />
           </mesh>
 
           {/* Outer content circle */}
           <mesh raycast={() => null}>
             <ringGeometry args={[contentOuterRadius - 0.008, contentOuterRadius, 128]} />
-            <meshBasicMaterial color="#333333" transparent opacity={0.3} side={THREE.DoubleSide} />
+            <meshBasicMaterial color="#888888" transparent opacity={0.5} side={THREE.DoubleSide} />
           </mesh>
 
           <group ref={labelsGroupRef}>
+            {/* Nav button band segments */}
+            {Array.from({ length: ITEM_COUNT }).map((_, i) => (
+              <NavButtonSegment
+                key={`btn-seg-${i}`}
+                thetaStart={(i - 0.5) * ITEM_STEP}
+                thetaLength={ITEM_STEP}
+                isActive={i === visualActiveIdx}
+              />
+            ))}
+
             {/* Filled arc segments — only fade on settle via visualActiveIdx */}
             {Array.from({ length: ITEM_COUNT }).map((_, i) => (
               <SegmentArc
                 key={`seg-${i}`}
+                innerRadius={BUTTON_OUTER_RADIUS}
                 outerRadius={contentOuterRadius}
                 thetaStart={(i - 0.5) * ITEM_STEP}
                 thetaLength={ITEM_STEP}
@@ -607,10 +704,10 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
                 <NavLabel
                   key={item.label}
                   label={item.label}
-                  href={item.href}
                   angle={baseAngle}
                   isActive={i === activeIdx}
-                  onNavigate={onNavigate}
+                  rotationRef={rotationAngle}
+                  onItemClick={() => rotateToItem(i)}
                 />
               )
             })}
@@ -628,11 +725,20 @@ export function CubeSocket({ bodyRef, onDockedChange, onNavigate }: CubeSocketPr
                   raycast={() => null}
                 >
                   <planeGeometry args={[segLen, LINE_THICKNESS]} />
-                  <meshBasicMaterial color="#333333" transparent opacity={0.3} side={THREE.DoubleSide} />
+                  <meshBasicMaterial color="#888888" transparent opacity={0.5} side={THREE.DoubleSide} />
                 </mesh>
               )
             })}
           </group>
+
+          {/* In-wedge content — outside rotating group, fixed at active position */}
+          <WedgeContent
+            pageId={visualActiveIdx >= 0 ? NAV_ITEMS[visualActiveIdx]?.label ?? null : null}
+            angle={ACTIVE_ANGLE}
+            innerRadius={contentInnerRadius}
+            outerRadius={contentOuterRadius}
+            visible={visualActiveIdx >= 0}
+          />
         </>
       )}
     </group>
