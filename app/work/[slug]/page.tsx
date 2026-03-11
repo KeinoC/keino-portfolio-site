@@ -2,8 +2,9 @@
 
 import { use } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 import { LenisProvider } from "@/components/lenis-provider";
 import { getProject, projects } from "@/lib/projects";
 import { notFound } from "next/navigation";
@@ -123,18 +124,30 @@ export default function ProjectPage({
           </motion.div>
         </section>
 
-        {/* Full-width screenshot placeholder */}
+        {/* Full-width screenshot */}
         <section className="px-6 md:px-12 max-w-[1400px] mx-auto pb-24">
           <motion.div
-            className="h-[560px] bg-[#161616] rounded-xl flex items-center justify-center"
+            className="rounded-xl overflow-hidden bg-[#161616]"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <span className="font-body text-[16px] text-[#333]">
-              Screenshot
-            </span>
+            {project.heroImage ? (
+              <Image
+                src={project.heroImage}
+                alt={`${project.title} screenshot`}
+                width={1400}
+                height={560}
+                className="w-full h-auto object-cover"
+              />
+            ) : (
+              <div className="h-[560px] flex items-center justify-center">
+                <span className="font-body text-[16px] text-[#333]">
+                  Screenshot
+                </span>
+              </div>
+            )}
           </motion.div>
         </section>
 
@@ -203,17 +216,22 @@ export default function ProjectPage({
                 </div>
               )}
               <div className="flex flex-col gap-3">
+                {project.liveUrl && (
+                  <a
+                    href={project.liveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-body text-[14px] px-6 py-3 rounded-full bg-white text-[#090909] font-medium hover:bg-[#ddd] transition-colors text-center flex items-center justify-center gap-2"
+                  >
+                    View Live
+                    <ExternalLink size={14} />
+                  </a>
+                )}
                 <a
                   href="mailto:keino@keino.dev"
-                  className="font-body text-[14px] px-6 py-3 rounded-full bg-white text-[#090909] font-medium hover:bg-[#ddd] transition-colors text-center"
-                >
-                  Get in touch
-                </a>
-                <a
-                  href="/resume.pdf"
                   className="font-body text-[14px] px-6 py-3 rounded-full border border-[#222] text-[#888] hover:border-[#555] hover:text-white transition-colors text-center"
                 >
-                  View resume
+                  Get in touch
                 </a>
               </div>
             </motion.div>
@@ -260,35 +278,35 @@ export default function ProjectPage({
           </section>
         )}
 
-        {/* Screenshot placeholders */}
-        <section className="px-6 md:px-12 max-w-[1400px] mx-auto pb-32">
-          <motion.div
-            className="grid md:grid-cols-2 gap-6"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={stagger}
-          >
+        {/* Screenshots */}
+        {project.images && project.images.length > 0 && (
+          <section className="px-6 md:px-12 max-w-[1400px] mx-auto pb-32">
             <motion.div
-              className="h-[360px] bg-[#161616] rounded-xl flex items-center justify-center"
-              variants={fadeUp}
-              transition={{ duration: 0.6 }}
+              className="grid md:grid-cols-2 gap-6"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={stagger}
             >
-              <span className="font-body text-[14px] text-[#333]">
-                Screenshot
-              </span>
+              {project.images.map((img, i) => (
+                <motion.div
+                  key={i}
+                  className="rounded-xl overflow-hidden bg-[#161616]"
+                  variants={fadeUp}
+                  transition={{ duration: 0.6 }}
+                >
+                  <Image
+                    src={img}
+                    alt={`${project.title} screenshot ${i + 1}`}
+                    width={700}
+                    height={360}
+                    className="w-full h-auto object-cover"
+                  />
+                </motion.div>
+              ))}
             </motion.div>
-            <motion.div
-              className="h-[360px] bg-[#161616] rounded-xl flex items-center justify-center"
-              variants={fadeUp}
-              transition={{ duration: 0.6 }}
-            >
-              <span className="font-body text-[14px] text-[#333]">
-                Screenshot
-              </span>
-            </motion.div>
-          </motion.div>
-        </section>
+          </section>
+        )}
 
         {/* Next Project */}
         {nextProject && (

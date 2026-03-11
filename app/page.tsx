@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import { ArrowUpRight, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { LenisProvider } from "@/components/lenis-provider";
 import { Nav } from "@/components/nav";
-import { projects } from "@/lib/projects";
+import { SelectedWork } from "@/components/selected-work";
 
 function GithubIcon({ size = 18 }: { size?: number }) {
   return (
@@ -230,57 +229,7 @@ export default function Home() {
         </section>
 
         {/* Selected Work */}
-        <section id="work" className="px-6 md:px-12 max-w-[1400px] mx-auto py-32">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={stagger}
-          >
-            <motion.span
-              className="font-headline text-[14px] text-[#444] tracking-[2px] uppercase block mb-12"
-              variants={fadeUp}
-              transition={{ duration: 0.6 }}
-            >
-              Selected Work
-            </motion.span>
-            <div className="flex flex-col gap-[2px]">
-            {projects.map((project) => (
-              <motion.div key={project.slug} variants={fadeUp} transition={{ duration: 0.6 }}>
-                <Link href={`/work/${project.slug}`} className="group block">
-                  <div className="h-[400px] bg-[#141414] rounded-xl overflow-hidden relative">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="font-headline text-[24px] text-[#333] font-semibold">
-                        {project.title}
-                      </span>
-                    </div>
-                    <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.03]" />
-                  </div>
-                  <div className="flex items-center justify-between py-5">
-                    <div className="flex items-center gap-6">
-                      <span className="font-body text-[14px] text-[#333] tabular-nums">
-                        {project.number}
-                      </span>
-                      <span className="font-headline text-[28px] font-semibold text-white">
-                        {project.title}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <span className="font-body text-[13px] text-[#444]">
-                        {project.category}
-                      </span>
-                      <ArrowUpRight
-                        size={20}
-                        className="text-[#333] transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1"
-                      />
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-            </div>
-          </motion.div>
-        </section>
+        <SelectedWork />
 
         {/* About */}
         <section id="about" className="px-6 md:px-12 max-w-[1400px] mx-auto py-32">

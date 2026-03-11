@@ -2,6 +2,7 @@ export interface Project {
   slug: string;
   number: string;
   title: string;
+  shortDescription: string;
   category: string;
   overview: string;
   challenge: string;
@@ -10,6 +11,9 @@ export interface Project {
   client: string;
   tech: string[];
   features: { number: string; title: string; description: string }[];
+  heroImage?: string;
+  images?: string[];
+  liveUrl?: string;
   nextProject?: { slug: string; title: string };
 }
 
@@ -18,6 +22,8 @@ export const projects: Project[] = [
     slug: "forge-bi",
     number: "01",
     title: "Forge BI",
+    shortDescription:
+      "AI-powered business intelligence for startups. Financial insights via natural language.",
     category: "AI / Fintech",
     overview:
       "Forge BI is an AI-powered business intelligence platform designed specifically for startups. It connects to your financial data sources — bank accounts, accounting software — and uses natural language AI to deliver actionable insights.\n\nBuilt with Next.js 15, TypeScript, and Vercel AI SDK — integrates Plaid for bank data and applies 8 years of financial analysis experience to product design, creating dashboards that translate raw data into decisions.",
@@ -27,6 +33,9 @@ export const projects: Project[] = [
     timeline: "Oct 2024 — Ongoing",
     client: "Personal Product",
     tech: ["Next.js", "TypeScript", "Prisma", "AI SDK", "Plaid"],
+    heroImage: "/screenshots/forge-bi-hero.png",
+    images: ["/screenshots/forge-bi-hero.png"],
+    liveUrl: "https://forge.keino.dev",
     features: [
       {
         number: "01",
@@ -53,6 +62,8 @@ export const projects: Project[] = [
     slug: "high-tide-capital",
     number: "02",
     title: "High Tide Capital",
+    shortDescription:
+      "Modern underwriting platform with borrower validation and DocuSign e-signature flow.",
     category: "Lending / Underwriting",
     overview:
       "HiTide Capital needed a modern underwriting platform to manage their lending pipeline. I built the borrower-facing validation and contract flow using Next.js and TypeScript, with DocuSign integration for e-signatures.\n\nThe backend uses a PostgreSQL database designed with Prisma ORM to track applicant data, underwriting decisions, and loan status through the full lifecycle — from application to funding.",
@@ -62,6 +73,9 @@ export const projects: Project[] = [
     timeline: "2024",
     client: "HiTide Capital",
     tech: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "DocuSign"],
+    heroImage: "/screenshots/hitide-hero.png",
+    images: ["/screenshots/hitide-flow.png", "/screenshots/hitide-products.png"],
+    liveUrl: "https://hitidecapital.com",
     features: [
       {
         number: "01",
@@ -88,6 +102,8 @@ export const projects: Project[] = [
     slug: "lhbk-web",
     number: "03",
     title: "LHBK Web",
+    shortDescription:
+      "Community website for Brooklyn-based non-profit preserving Haitian culture.",
     category: "Non-Profit / Community",
     overview:
       "Little Haiti BK is a Brooklyn-based non-profit dedicated to preserving Haitian culture and empowering the local community. I built their web presence — a Next.js site with community event listings, organizational information, and local resource mapping.\n\nThe site serves as the digital front door for the organization, connecting community members with programs, events, and resources across Brooklyn.",
@@ -97,6 +113,9 @@ export const projects: Project[] = [
     timeline: "2024",
     client: "Little Haiti BK",
     tech: ["Next.js", "TypeScript", "Tailwind CSS", "Vercel"],
+    heroImage: "/screenshots/lhbk-hero.png",
+    images: ["/screenshots/lhbk-hero.png"],
+    liveUrl: "https://lhbk.org",
     features: [
       {
         number: "01",
@@ -126,6 +145,8 @@ export const projects: Project[] = [
     slug: "good-call-technologies",
     number: "04",
     title: "Good Call Technologies",
+    shortDescription:
+      "Twilio-based voice routing connecting people in custody with attorneys 24/7.",
     category: "Legal Tech / Telecom",
     overview:
       "Good Call Technologies connects people in police custody with attorneys. I built the Twilio-based voice routing system that powers 24/7 attorney connections from precinct phones — call flow logic, queue management, and automatic routing to available operators.\n\nAlongside the phone system, I developed the operator dashboard where staff manage scheduling, handle live calls (hold, transfer, conferencing), and monitor real-time notifications.",
@@ -135,6 +156,9 @@ export const projects: Project[] = [
     timeline: "2024",
     client: "Good Call Technology",
     tech: ["Next.js", "TypeScript", "Twilio", "Node.js", "PostgreSQL"],
+    heroImage: "/screenshots/goodcall-hero.png",
+    images: ["/screenshots/goodcall-hero.png"],
+    liveUrl: "https://goodcall.nyc",
     features: [
       {
         number: "01",
