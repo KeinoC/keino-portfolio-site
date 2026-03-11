@@ -1,12 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --gradient-angle: 0deg;
-  --gradient-1: #3b82f6;
-  --gradient-2: #8b5cf6;
-  --gradient-3: #ec4899;
+  --background: #090909;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -14,231 +10,69 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-headline: var(--font-space-grotesk);
+  --font-body: var(--font-dm-sans);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --gradient-1: #60a5fa;
-    --gradient-2: #a78bfa;
-    --gradient-3: #f472b6;
-  }
-}
-
-html, body {
+html {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-  line-height: 1.6;
-  scroll-behavior: smooth;
-  /* Mobile touch improvements */
   -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-  overscroll-behavior: none;
-}
-
-/* Prevent iOS bounce/pull-to-refresh on explore page */
-html {
-  overflow: hidden;
-  height: 100%;
 }
 
 body {
-  overflow: auto;
-  height: 100%;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+/* Font utility classes */
+.font-headline {
+  font-family: var(--font-space-grotesk), system-ui, sans-serif;
+}
+
+.font-body {
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
 }
 
 /* Paper texture grain — SVG feTurbulence noise, overlay blend for dark backgrounds */
 .paper-grain {
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 1;
-  opacity: 0.35;
+  z-index: 100;
+  opacity: 0.15;
   mix-blend-mode: soft-light;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='5' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 1024px 1024px;
 }
 
-/* Paper fiber lines — faint directional texture */
-.paper-fibers {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.08;
-  mix-blend-mode: soft-light;
-  background:
-    repeating-linear-gradient(
-      3deg,
-      transparent,
-      transparent 50px,
-      rgba(220, 200, 170, 0.4) 50px,
-      transparent 51px
-    ),
-    repeating-linear-gradient(
-      177deg,
-      transparent,
-      transparent 90px,
-      rgba(200, 180, 150, 0.25) 90px,
-      transparent 91px
-    ),
-    repeating-linear-gradient(
-      92deg,
-      transparent,
-      transparent 130px,
-      rgba(180, 160, 130, 0.2) 130px,
-      transparent 131px
-    );
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
 }
 
-/* Vignette — dark edges for printed-paper depth */
-.paper-vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  background: radial-gradient(
-    ellipse 70% 60% at 50% 45%,
-    transparent 0%,
-    rgba(8, 7, 6, 0.35) 60%,
-    rgba(3, 3, 3, 0.8) 100%
-  );
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 3px;
+}
 
-  .gradient-text {
-    background: linear-gradient(
-      135deg,
-      var(--gradient-1),
-      var(--gradient-2),
-      var(--gradient-3)
-    );
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: #333;
+}
 
-  .gradient-bg {
-    background: linear-gradient(
-      135deg,
-      var(--gradient-1),
-      var(--gradient-2),
-      var(--gradient-3)
-    );
-  }
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid #333;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
-  .glass-effect {
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .glass-effect {
-      background: rgba(0, 0, 0, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-  }
-
-  .glow {
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
-  }
-
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
-  }
-
-  /* Enhanced scrollbar for better UX */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.5);
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #60a5fa, #a78bfa);
-  }
-
-  /* Focus styles for accessibility */
-  *:focus-visible {
-    outline: 2px solid #3b82f6;
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
-
-  /* Smooth transitions for interactive elements */
-  button, a, input, textarea {
-    transition: all 0.3s ease;
-  }
-
-  /* Mobile-first responsive typography */
-  @media (max-width: 640px) {
-    .gradient-text {
-      background-size: 200% 200%;
-      animation: gradient-shift 3s ease infinite;
-    }
-  }
-
-  @keyframes gradient-shift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-
-  /* Enhanced glass effect with better mobile support */
-  .glass-effect {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .glass-effect {
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    }
-  }
-
-  /* Performance optimizations for animations */
-  .animate-float,
-  .animate-pulse,
-  .animate-spin {
-    will-change: transform;
-  }
-
-  /* Responsive spacing utilities */
-  @media (max-width: 768px) {
-    .responsive-padding {
-      padding-left: 1rem;
-      padding-right: 1rem;
-    }
-  }
-
-  @media (min-width: 769px) {
-    .responsive-padding {
-      padding-left: 2rem;
-      padding-right: 2rem;
-    }
-  }
+/* Selection */
+::selection {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
 }

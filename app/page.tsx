@@ -1,955 +1,436 @@
-'use client'
+"use client";
 
-import { Suspense, useRef, useState, useCallback, useEffect, useMemo } from 'react'
-import { Canvas, useFrame, useThree, ThreeEvent } from '@react-three/fiber'
-import { RoundedBox, Text3D, Center } from '@react-three/drei'
-import { Physics, RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier'
-// collision groups removed — interactionGroups() in physics-groups.ts uses
-// bitmask values as group indices which breaks collision filtering.
-// v2 uses default collision (everything collides with everything).
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
-import * as THREE from 'three'
-import { PhysicsVoxelCloud } from '@/components/3d/PhysicsVoxelCloud'
-import { CubeSocket } from '@/components/3d/CubeSocket'
-import { voxelizeText } from '@/lib/voxelize-text'
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { ArrowUpRight, ChevronDown } from "lucide-react";
+import { LenisProvider } from "@/components/lenis-provider";
+import { Nav } from "@/components/nav";
+import { projects } from "@/lib/projects";
 
-
-const BOUNCE_STRENGTH = 6
-
-const CUBE_SIZE = 0.4
-const CUBE_PADDING = 0.25
-const LIFT_HEIGHT = 0.6
-const LIFT_SCALE = 1.15
-
-const LETTER_SIZE = 0.7
-const LETTER_HEIGHT = 0.2
-const LETTER_SPACING = 0.55
-
-// State machine constants
-const IDLE_HOVER_HEIGHT = 2.0
-const IDLE_RISE_SPEED = 0.5
-const IDLE_ROTATION_SPEED = 0.3
-const IDLE_LIGHT_BOOST = 1.6
-
-const PAUSE_DURATION = 3.0
-const SETTLE_CONFIRM_TIME = 0.3
-const SETTLE_TIMEOUT = 3.0
-const SETTLE_LINEAR_THRESHOLD = 0.3
-const SETTLE_ANGULAR_THRESHOLD = 0.2
-const SETTLE_FLAT_THRESHOLD = 0.15 // radians — ~8.5°
-
-// Rapier damping profiles — switched at runtime per state
-// At 60fps with dt=0.0167: velocity *= 1/(1 + dt * damping) per substep
-const DAMPING_ACTIVE = { linear: 0.3, angular: 0.3 }
-const DAMPING_SETTLING = { linear: 4.0, angular: 4.0 }
-const DAMPING_RESTING = { linear: 10.0, angular: 10.0 }
-
-type DampingProfile = 'active' | 'settling' | 'resting'
-const DAMPING_PROFILES: Record<DampingProfile, { linear: number; angular: number }> = {
-  active: DAMPING_ACTIVE,
-  settling: DAMPING_SETTLING,
-  resting: DAMPING_RESTING,
-}
-
-type CubeState = 'active' | 'settling' | 'resting' | 'paused' | 'floating'
-
-// Pre-allocated THREE objects for getNearestFaceAlignment (avoid per-frame GC)
-const _localAxes = [
-  new THREE.Vector3(), // +X
-  new THREE.Vector3(), // -X
-  new THREE.Vector3(), // +Y
-  new THREE.Vector3(), // -Y
-  new THREE.Vector3(), // +Z
-  new THREE.Vector3(), // -Z
-]
-const _worldZ = new THREE.Vector3(0, 0, 1)
-const _snapAxis = new THREE.Vector3()
-const _snapQuat = new THREE.Quaternion()
-
-function getNearestFaceAlignment(q: THREE.Quaternion): {
-  isFlat: boolean
-  nearestQuaternion: THREE.Quaternion
-  deviation: number
-} {
-  // The 6 local face normals of a cube
-  const faceNormals: [number, number, number][] = [
-    [1, 0, 0], [-1, 0, 0],
-    [0, 1, 0], [0, -1, 0],
-    [0, 0, 1], [0, 0, -1],
-  ]
-
-  let bestDot = -Infinity
-  let bestIdx = 0
-
-  for (let i = 0; i < 6; i++) {
-    _localAxes[i].set(faceNormals[i][0], faceNormals[i][1], faceNormals[i][2])
-    _localAxes[i].applyQuaternion(q)
-    const dot = _localAxes[i].dot(_worldZ)
-    if (dot > bestDot) {
-      bestDot = dot
-      bestIdx = i
-    }
-  }
-
-  // Deviation angle between best face and world Z
-  const deviation = Math.acos(Math.min(1, Math.max(-1, bestDot)))
-
-  // Compute snap quaternion: rotate current orientation so best face aligns with +Z
-  const bestFaceWorld = _localAxes[bestIdx].clone().normalize()
-  _snapAxis.crossVectors(bestFaceWorld, _worldZ)
-  const snapLen = _snapAxis.length()
-
-  if (snapLen < 0.001) {
-    // Already aligned (or anti-aligned — if anti-aligned, 180° flip needed but rare)
-    _snapQuat.copy(q)
-  } else {
-    _snapAxis.normalize()
-    const angle = Math.atan2(snapLen, bestDot)
-    _snapQuat.setFromAxisAngle(_snapAxis, angle)
-    _snapQuat.multiply(q)
-  }
-
-  return {
-    isFlat: deviation < SETTLE_FLAT_THRESHOLD,
-    nearestQuaternion: _snapQuat.clone(),
-    deviation,
-  }
-}
-
-// Swirling inner light component
-function InnerLight() {
-  const meshRef = useRef<THREE.Mesh>(null)
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x = state.clock.elapsedTime * 0.3
-      meshRef.current.rotation.y = state.clock.elapsedTime * 0.5
-      meshRef.current.rotation.z = state.clock.elapsedTime * 0.2
-    }
-  })
-
+function GithubIcon({ size = 18 }: { size?: number }) {
   return (
-    <mesh ref={meshRef}>
-      <icosahedronGeometry args={[0.12, 0]} />
-      <meshBasicMaterial color="#fff8e7" transparent opacity={0.9} />
-    </mesh>
-  )
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+    </svg>
+  );
 }
 
-// Draggable light cube with Rapier physics - simplified (no socket)
-function LightCube({ bodyRef, dockedRef }: { bodyRef?: { current: RapierRigidBody | null }; dockedRef?: { current: boolean } }) {
-  const { camera, gl, size } = useThree()
-  const ortho = camera as THREE.OrthographicCamera
-  const rigidBodyRef = useRef<RapierRigidBody>(null)
-  const groupRef = useRef<THREE.Group>(null)
-  const isDragging = useRef(false)
-  const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0))
-  const dragOffset = useRef(new THREE.Vector3())
-  const lastDragPos = useRef(new THREE.Vector3())
-  const velocity = useRef(new THREE.Vector3())
-
-  // State machine
-  const cubeState = useRef<CubeState>('active')
-  const stateStartTime = useRef(0)
-  const settledDuration = useRef(0)
-  const floatProgress = useRef(0)
-  const floatBaseZ = useRef(0)
-  const lastInteractionTime = useRef(Date.now())
-
-  // Damping profile tracking — only call Rapier API when profile changes
-  const currentDamping = useRef<DampingProfile>('active')
-
-  const applyDamping = useCallback((profile: DampingProfile) => {
-    if (currentDamping.current === profile) return
-    if (!rigidBodyRef.current) return
-    const { linear, angular } = DAMPING_PROFILES[profile]
-    rigidBodyRef.current.setLinearDamping(linear)
-    rigidBodyRef.current.setAngularDamping(angular)
-    currentDamping.current = profile
-  }, [])
-
-  // Imperative refs for light intensity (no setState in useFrame)
-  const materialRef = useRef<THREE.MeshStandardMaterial>(null)
-  const light1Ref = useRef<THREE.PointLight>(null)
-  const light2Ref = useRef<THREE.PointLight>(null)
-
-  const bounds = useMemo(() => {
-    const halfW = (ortho.right - ortho.left) / (2 * ortho.zoom)
-    const halfH = (ortho.top - ortho.bottom) / (2 * ortho.zoom)
-    return {
-      minX: -halfW + CUBE_PADDING,
-      maxX: halfW - CUBE_PADDING,
-      minY: -halfH + CUBE_PADDING,
-      maxY: halfH - CUBE_PADDING,
-      halfW,
-      halfH,
-    }
-  }, [ortho.left, ortho.right, ortho.top, ortho.bottom, ortho.zoom])
-
-  const raycaster = useMemo(() => new THREE.Raycaster(), [])
-
-  const getMouseNDC = useCallback((event: ThreeEvent<PointerEvent>) => {
-    const rect = gl.domElement.getBoundingClientRect()
-    const clientX = event.nativeEvent.clientX
-    const clientY = event.nativeEvent.clientY
-    return new THREE.Vector2(
-      ((clientX - rect.left) / rect.width) * 2 - 1,
-      -((clientY - rect.top) / rect.height) * 2 + 1
-    )
-  }, [gl.domElement])
-
-  const handlePointerDown = useCallback((event: ThreeEvent<PointerEvent>) => {
-    event.stopPropagation()
-    isDragging.current = true
-    lastInteractionTime.current = Date.now()
-    cubeState.current = 'active'
-    applyDamping('active')
-    floatProgress.current = 0
-    settledDuration.current = 0
-
-    // Reset visual group offset from float
-    if (groupRef.current) {
-      groupRef.current.position.set(0, 0, 0)
-      groupRef.current.rotation.set(0, 0, 0)
-    }
-
-    // Bring rigid body back to floor level if it was floating
-    if (rigidBodyRef.current) {
-      const p = rigidBodyRef.current.translation()
-      if (p.z > LIFT_HEIGHT + 0.5) {
-        rigidBodyRef.current.setTranslation({ x: p.x, y: p.y, z: LIFT_HEIGHT }, true)
-      }
-    }
-
-    if (rigidBodyRef.current) {
-      rigidBodyRef.current.wakeUp()
-      const pos = rigidBodyRef.current.translation()
-      dragPlane.current.constant = -(pos.z + LIFT_HEIGHT)
-
-      const mouse = getMouseNDC(event)
-      raycaster.setFromCamera(mouse, camera)
-      const intersectPoint = new THREE.Vector3()
-      raycaster.ray.intersectPlane(dragPlane.current, intersectPoint)
-
-      dragOffset.current.set(pos.x - intersectPoint.x, pos.y - intersectPoint.y, 0)
-      lastDragPos.current.set(pos.x, pos.y, pos.z + LIFT_HEIGHT)
-      velocity.current.set(0, 0, 0)
-    }
-  }, [camera, getMouseNDC, raycaster])
-
-  useEffect(() => {
-    const getMouseNDCFromEvent = (event: PointerEvent) => {
-      const rect = gl.domElement.getBoundingClientRect()
-      return new THREE.Vector2(
-        ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        -((event.clientY - rect.top) / rect.height) * 2 + 1
-      )
-    }
-
-    const handlePointerMove = (event: PointerEvent) => {
-      if (!isDragging.current || !rigidBodyRef.current) return
-
-      const mouse = getMouseNDCFromEvent(event)
-      raycaster.setFromCamera(mouse, camera)
-
-      const intersectPoint = new THREE.Vector3()
-      if (raycaster.ray.intersectPlane(dragPlane.current, intersectPoint)) {
-        const targetX = Math.max(bounds.minX, Math.min(bounds.maxX, intersectPoint.x + dragOffset.current.x))
-        const targetY = Math.max(bounds.minY, Math.min(bounds.maxY, intersectPoint.y + dragOffset.current.y))
-        const targetZ = LIFT_HEIGHT
-
-        velocity.current.set(
-          (targetX - lastDragPos.current.x) * 60,
-          (targetY - lastDragPos.current.y) * 60,
-          0
-        )
-        lastDragPos.current.set(targetX, targetY, targetZ)
-
-        rigidBodyRef.current.setTranslation({ x: targetX, y: targetY, z: targetZ }, true)
-        rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true)
-        rigidBodyRef.current.setAngvel({ x: 0, y: 0, z: 0 }, true)
-      }
-    }
-
-    const handlePointerUp = () => {
-      if (!isDragging.current) return
-      isDragging.current = false
-      lastInteractionTime.current = Date.now()
-
-      if (rigidBodyRef.current) {
-        const maxSpeed = 15
-        const vx = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.current.x))
-        const vy = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.current.y))
-
-        const rb = rigidBodyRef.current
-        // Proportional release: velocity from drag tracking + gentle drop
-        rb.setLinvel({ x: vx, y: vy, z: -2 }, true)
-        // Add moderate spin from throw direction
-        rb.setAngvel({ x: vy * 2, y: -vx * 2, z: 0 }, true)
-      }
-    }
-
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
-
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerUp)
-    }
-  }, [bounds, camera, gl.domElement, raycaster])
-
-  useFrame((state, delta) => {
-    if (!rigidBodyRef.current) return
-
-    // Expose rigid body ref to parent for gravity well targeting
-    // Always assign — body handle may change if Physics world rebuilds
-    if (bodyRef && bodyRef.current !== rigidBodyRef.current) {
-      bodyRef.current = rigidBodyRef.current
-    }
-
-    const now = state.clock.elapsedTime
-    const pos = rigidBodyRef.current.translation()
-    const linvel = rigidBodyRef.current.linvel()
-    const angvel = rigidBodyRef.current.angvel()
-    const rb = rigidBodyRef.current
-
-    // If cube is docked in socket, freeze state machine — CubeSocket owns the body
-    if (dockedRef?.current) {
-      cubeState.current = 'active'
-      floatProgress.current = 0
-      settledDuration.current = 0
-      if (groupRef.current) groupRef.current.scale.setScalar(1)
-      if (materialRef.current) materialRef.current.emissiveIntensity = 2
-      if (light1Ref.current) light1Ref.current.intensity = 40
-      if (light2Ref.current) light2Ref.current.intensity = 25
-      paperMaterial.uniforms.uLightPos.value.set(pos.x, pos.y, pos.z)
-      return
-    }
-
-    // Always reset state while dragging
-    if (isDragging.current) {
-      cubeState.current = 'active'
-      lastInteractionTime.current = Date.now()
-      floatProgress.current = 0
-      settledDuration.current = 0
-      // Reset visual group offset from float
-      if (groupRef.current) {
-        groupRef.current.position.set(0, 0, 0)
-        groupRef.current.rotation.set(0, 0, 0)
-      }
-      // Bring rigid body back down if it was floating
-      if (pos.z > LIFT_HEIGHT + 0.5) {
-        rb.setTranslation({ x: pos.x, y: pos.y, z: LIFT_HEIGHT }, true)
-      }
-    }
-
-    const linearSpeed = Math.sqrt(linvel.x * linvel.x + linvel.y * linvel.y + linvel.z * linvel.z)
-    const angularSpeed = Math.sqrt(angvel.x * angvel.x + angvel.y * angvel.y + angvel.z * angvel.z)
-
-    // --- State machine ---
-    const st = cubeState.current
-
-    if (st === 'active' && !isDragging.current) {
-      applyDamping('active')
-
-      // Transition to settling when slow enough
-      if (linearSpeed < SETTLE_LINEAR_THRESHOLD && angularSpeed < SETTLE_ANGULAR_THRESHOLD) {
-        cubeState.current = 'settling'
-        applyDamping('settling')
-        stateStartTime.current = now
-        settledDuration.current = 0
-      }
-    }
-
-    if (st === 'settling') {
-      // If something kicks the cube (e.g. wall bounce), go back to active
-      if (linearSpeed > SETTLE_LINEAR_THRESHOLD * 2 || angularSpeed > SETTLE_ANGULAR_THRESHOLD * 2) {
-        cubeState.current = 'active'
-        applyDamping('active')
-      } else {
-        // Rapier handles deceleration via high damping — no manual velocity overrides
-        applyDamping('settling')
-
-        // Slerp toward nearest flat face only when angular speed is low enough
-        // that we won't fight active rotation
-        if (angularSpeed < 0.5) {
-          const rot = rb.rotation()
-          const currentQuat = new THREE.Quaternion(rot.x, rot.y, rot.z, rot.w)
-          const alignment = getNearestFaceAlignment(currentQuat)
-
-          // Narrower threshold (30°) with gentle strength
-          if (alignment.deviation < Math.PI * (30 / 180)) {
-            const strength = alignment.deviation < Math.PI * (10 / 180) ? 0.08 : 0.04
-            currentQuat.slerp(alignment.nearestQuaternion, strength)
-            rb.setRotation({ x: currentQuat.x, y: currentQuat.y, z: currentQuat.z, w: currentQuat.w }, true)
-          }
-
-          // Track how long we've been settled (flat + slow)
-          if (alignment.isFlat && linearSpeed < 0.2 && angularSpeed < 0.15) {
-            settledDuration.current += delta
-          } else {
-            settledDuration.current = 0
-          }
-        } else {
-          settledDuration.current = 0
-        }
-
-        // Transition to resting if confirmed settled OR timeout
-        if (settledDuration.current >= SETTLE_CONFIRM_TIME || (now - stateStartTime.current) > SETTLE_TIMEOUT) {
-          cubeState.current = 'resting'
-          applyDamping('resting')
-        }
-      }
-    }
-
-    if (st === 'resting') {
-      applyDamping('resting')
-
-      // Snap to exact flat orientation and freeze
-      const rot = rb.rotation()
-      const currentQuat = new THREE.Quaternion(rot.x, rot.y, rot.z, rot.w)
-      const alignment = getNearestFaceAlignment(currentQuat)
-      const snap = alignment.nearestQuaternion
-      rb.setRotation({ x: snap.x, y: snap.y, z: snap.z, w: snap.w }, true)
-      rb.setLinvel({ x: 0, y: 0, z: 0 }, true)
-      rb.setAngvel({ x: 0, y: 0, z: 0 }, true)
-
-      // Immediate transition to paused
-      cubeState.current = 'paused'
-      stateStartTime.current = now
-    }
-
-    if (st === 'paused') {
-      // Hold position, subtle breathing glow
-      rb.setLinvel({ x: 0, y: 0, z: 0 }, true)
-      rb.setAngvel({ x: 0, y: 0, z: 0 }, true)
-
-      const pauseElapsed = now - stateStartTime.current
-      const breathe = 1 + 0.15 * Math.sin(pauseElapsed * 2.5)
-
-      if (materialRef.current) materialRef.current.emissiveIntensity = 2 * breathe
-      if (light1Ref.current) light1Ref.current.intensity = 40 * breathe
-      if (light2Ref.current) light2Ref.current.intensity = 25 * breathe
-
-      if (pauseElapsed > PAUSE_DURATION) {
-        cubeState.current = 'floating'
-        stateStartTime.current = now
-        floatProgress.current = 0
-        floatBaseZ.current = pos.z
-      }
-    }
-
-    if (st === 'floating') {
-      floatProgress.current = Math.min(1, floatProgress.current + delta * IDLE_RISE_SPEED)
-      const t = floatProgress.current
-
-      // Move the actual rigid body upward using fixed base position
-      const targetZ = floatBaseZ.current + IDLE_HOVER_HEIGHT * t
-      const currentZ = pos.z
-      const newZ = currentZ + (targetZ - currentZ) * 0.1
-      rb.setTranslation({ x: pos.x, y: pos.y, z: newZ }, true)
-      rb.setLinvel({ x: 0, y: 0, z: 0 }, true)
-
-      // Apply gentle rotation via angular velocity (not group rotation)
-      rb.setAngvel({
-        x: Math.sin(now * 0.7) * 0.15 * t,
-        y: Math.cos(now * 0.5) * 0.15 * t,
-        z: Math.sin(now * 0.4) * 0.08 * t,
-      }, true)
-
-      // Light boost while floating
-      const intensity = 1 + (IDLE_LIGHT_BOOST - 1) * t
-      if (materialRef.current) materialRef.current.emissiveIntensity = 2 * intensity
-      if (light1Ref.current) light1Ref.current.intensity = 40 * intensity
-      if (light2Ref.current) light2Ref.current.intensity = 25 * intensity
-
-    }
-
-    // Default light intensity for active/settling states
-    if (st === 'active' || st === 'settling') {
-      if (materialRef.current) materialRef.current.emissiveIntensity = 2
-      if (light1Ref.current) light1Ref.current.intensity = 40
-      if (light2Ref.current) light2Ref.current.intensity = 25
-    }
-
-    // Scale based on height (all states)
-    if (groupRef.current) {
-      if (st === 'floating') {
-        // During float, scale based on visual offset + idle growth
-        const floatScale = 1 + floatProgress.current * 0.5
-        groupRef.current.scale.setScalar(floatScale)
-      } else {
-        const dragScale = Math.min(LIFT_SCALE, 1 + Math.max(0, pos.z / LIFT_HEIGHT) * (LIFT_SCALE - 1))
-        groupRef.current.scale.setScalar(dragScale)
-      }
-    }
-
-    // --- Screen-edge boundary bounce (replaces WorldWalls) ---
-    const edgeX = bounds.halfW - CUBE_SIZE / 2
-    const edgeY = bounds.halfH - CUBE_SIZE / 2
-
-    if (isNaN(pos.x) || isNaN(pos.y) || isNaN(pos.z)) {
-      rb.setTranslation({ x: 0, y: 0, z: 0.5 }, true)
-      rb.setLinvel({ x: 0, y: 0, z: 0 }, true)
-      rb.setAngvel({ x: 0, y: 0, z: 0 }, true)
-      cubeState.current = 'active'
-      applyDamping('active')
-      if (groupRef.current) {
-        groupRef.current.position.set(0, 0, 0)
-        groupRef.current.rotation.set(0, 0, 0)
-      }
-    } else {
-      if (Math.abs(pos.x) > edgeX) {
-        rb.setTranslation({ x: Math.sign(pos.x) * edgeX, y: pos.y, z: pos.z }, true)
-        rb.setLinvel({ x: -linvel.x * 0.6, y: linvel.y, z: linvel.z }, true)
-      }
-      if (Math.abs(pos.y) > edgeY) {
-        const currentPos = rb.translation()
-        rb.setTranslation({ x: currentPos.x, y: Math.sign(pos.y) * edgeY, z: currentPos.z }, true)
-        rb.setLinvel({ x: rb.linvel().x, y: -linvel.y * 0.6, z: linvel.z }, true)
-      }
-      // Z ceiling — prevent cube from flying too high above scene
-      const maxZ = IDLE_HOVER_HEIGHT + 1.0
-      if (pos.z > maxZ && st !== 'floating') {
-        const currentPos = rb.translation()
-        rb.setTranslation({ x: currentPos.x, y: currentPos.y, z: maxZ }, true)
-        const currentVel = rb.linvel()
-        rb.setLinvel({ x: currentVel.x, y: currentVel.y, z: -Math.abs(currentVel.z) * 0.3 }, true)
-      }
-    }
-
-    // Update paper background glow to follow cube (world-space uniform)
-    paperMaterial.uniforms.uLightPos.value.set(pos.x, pos.y, pos.z)
-  })
-
+function LinkedinIcon({ size = 18 }: { size?: number }) {
   return (
-    <RigidBody
-      ref={rigidBodyRef}
-      position={[0, 1.5, 0.5]}
-      colliders={false}
-      mass={3.0}
-      linearDamping={0.3}
-      angularDamping={0.3}
-      ccd
-    >
-      <CuboidCollider
-        args={[CUBE_SIZE / 2, CUBE_SIZE / 2, CUBE_SIZE / 2]}
-        friction={0.4}
-        restitution={0.5}
-      />
-
-      <group
-        ref={groupRef}
-        onPointerDown={handlePointerDown}
-        onPointerOver={() => { document.body.style.cursor = 'grab' }}
-        onPointerOut={() => { if (!isDragging.current) document.body.style.cursor = 'default' }}
-      >
-        {/* Main cube - emissive core that triggers Bloom */}
-        <RoundedBox args={[0.4, 0.4, 0.4]} radius={0.05} smoothness={4}>
-          <meshStandardMaterial
-            ref={materialRef}
-            color="#fffef5"
-            emissive="#fffaf0"
-            emissiveIntensity={2}
-            toneMapped={false}
-          />
-        </RoundedBox>
-
-        <InnerLight />
-
-        {/* Viewport-wide point lights — reach every corner, boosted when idle */}
-        <pointLight ref={light1Ref} color="#fffaf0" intensity={40} distance={0} decay={0.6} />
-        <pointLight ref={light2Ref} color="#ffefd5" intensity={25} distance={0} decay={0.6} />
-      </group>
-    </RigidBody>
-  )
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+    </svg>
+  );
 }
 
-// 3D Letter with physics
-function Letter3D({
-  letter,
-  position,
-}: {
-  letter: string
-  position: [number, number, number]
-}) {
-  return (
-    <RigidBody
-      position={position}
-      type="dynamic"
-      mass={3}
-      linearDamping={0.8}
-      angularDamping={0.8}
-      colliders={false}
-    >
-      <CuboidCollider
-        args={[LETTER_SIZE * 0.35, LETTER_SIZE * 0.45, LETTER_HEIGHT / 2]}
-        friction={1.2}
-        restitution={0.15}
-      />
+const fadeUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0 },
+};
 
-      <Center>
-        <Text3D
-          font="/fonts/gentilis_bold.typeface.json"
-          size={LETTER_SIZE}
-          height={LETTER_HEIGHT}
-          curveSegments={8}
-          bevelEnabled
-          bevelThickness={0.02}
-          bevelSize={0.012}
-          bevelSegments={3}
-        >
-          {letter}
-          <meshStandardMaterial
-            color="#2a2a2a"
-            metalness={0.15}
-            roughness={0.35}
-          />
-        </Text3D>
-      </Center>
-    </RigidBody>
-  )
-}
-
-// KEINO letters group
-function Text3DKeino() {
-  const letters = ['K', 'E', 'I', 'N', 'O']
-  const totalWidth = letters.length * LETTER_SPACING * 1.1
-  const startX = -totalWidth / 2 + LETTER_SPACING / 2
-
-  return (
-    <group position={[0, 0, LETTER_HEIGHT / 2]}>
-      {letters.map((letter, i) => (
-        <Letter3D
-          key={letter + i}
-          letter={letter}
-          position={[startX + i * LETTER_SPACING * 1.1, 0, 0]}
-        />
-      ))}
-    </group>
-  )
-}
-
-// Invisible ground plane collider
-function GroundPlane() {
-  return (
-    <RigidBody type="fixed" colliders={false}>
-      <CuboidCollider
-        args={[50, 50, 0.1]}
-        position={[0, 0, -0.1]}
-        friction={1.2}
-        restitution={0.1}
-      />
-    </RigidBody>
-  )
-}
-
-// Dark paper texture background — lives in 3D scene so only background is textured
-const paperMaterial = new THREE.ShaderMaterial({
-  uniforms: {
-    uBaseColor: { value: new THREE.Color('#0d0d0f') },
-    uGrainStrength: { value: 0.012 },
-    uLightPos: { value: new THREE.Vector3(0, 1.5, 0.5) },
+const stagger = {
+  visible: {
+    transition: { staggerChildren: 0.1 },
   },
-  vertexShader: `
-    varying vec2 vUv;
-    varying vec3 vWorldPos;
-    void main() {
-      vUv = uv;
-      vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform vec3 uBaseColor;
-    uniform float uGrainStrength;
-    uniform vec3 uLightPos;
-    varying vec2 vUv;
-    varying vec3 vWorldPos;
+};
 
-    // Classic Perlin-style hash noise
-    float hash(vec2 p) {
-      vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-      p3 += dot(p3, p3.yzx + 33.33);
-      return fract((p3.x + p3.y) * p3.z);
-    }
+const experience = [
+  {
+    role: "Software Engineer",
+    company: "Goodvibes Consultation",
+    dates: "Jun 2024 – Present",
+    summary:
+      "Built Twilio voice routing, underwriting platforms, and shared component libraries across multiple client engagements — Good Call Technology, HiTide Capital, and We Build Solutions.",
+    highlights: [
+      "Twilio voice routing with call flow logic and queue management for 24/7 attorney connections",
+      "Borrower validation and DocuSign contract flow for HiTide Capital\u2019s underwriting platform",
+      "Shared React/TypeScript component library used across 3 property management sites",
+      "Storyblok CMS integration and CI/CD pipeline with GitHub Actions",
+    ],
+  },
+  {
+    role: "Software Engineer",
+    company: "SPILL",
+    dates: "Aug 2023 – May 2024",
+    summary:
+      "Contributed to a 4-person engineering team during beta launch. Built internal tooling and fixed critical privacy bugs.",
+    highlights: [
+      "AWS Lambda Slack bot for beta invite code management, saving ~5 hours/week",
+      "Fixed bidirectional blocking bug in user privacy system with full test coverage",
+      "Code reviews, test writing, and sprint planning in Linear",
+    ],
+  },
+  {
+    role: "Software Engineer",
+    company: "ListedB",
+    dates: "Apr 2023 – Aug 2023",
+    summary:
+      "Built core marketplace features — public API endpoints, admin tooling, and booking flows. Shipped 15+ features in 5 months.",
+    highlights: [
+      "Public API endpoints for unauthenticated profile browsing and service booking",
+      "Retool admin dashboard for ops team via Stytch authentication API",
+      "15+ features including profile enhancements, booking flows, and search improvements",
+    ],
+  },
+  {
+    role: "Senior Financial Analyst",
+    company: "Pager Inc.",
+    dates: "May 2022 – Dec 2022",
+    summary:
+      "Financial modeling for actual vs. budget analysis, revenue recognition, and sales pipeline forecasting. Built KPI dashboards that improved cross-functional efficiency by 20%.",
+  },
+  {
+    role: "Financial Analyst",
+    company: "National Health Rehabilitation",
+    dates: "Feb 2021 – Apr 2022",
+    summary:
+      "Introduced Tableau to the company, reducing monthly data processing from 3 days to 4 hours. Built KPI models for physician visit trends and patient volume.",
+  },
+  {
+    role: "Senior Financial Analyst",
+    company: "VNSNY Choice Health Plan",
+    dates: "Jan 2019 – Nov 2021",
+    summary:
+      "Led annual budgeting with Adaptive Planning (Workday). Built automated dashboards for KPI reporting, reducing manual report prep by 25%.",
+  },
+  {
+    role: "Financial Analyst",
+    company: "NYU Langone Health",
+    dates: "Jan 2017 – Jan 2019",
+    summary:
+      "Created self-sustaining financial models for the hospital, medical school, and 14 affiliates — models still in active use. Automated journal entry workflows.",
+  },
+  {
+    role: "Insurance & Real Estate Analyst",
+    company: "Hospital for Special Surgery",
+    dates: "Mar 2015 – Jan 2017",
+    summary:
+      "Built commercial real estate financial models using rent-roll and CAM analysis. Systematized insurance renewal process, improving efficiency by 30%.",
+  },
+];
 
-    float noise(vec2 p) {
-      vec2 i = floor(p);
-      vec2 f = fract(p);
-      f = f * f * (3.0 - 2.0 * f);
-      float a = hash(i);
-      float b = hash(i + vec2(1.0, 0.0));
-      float c = hash(i + vec2(0.0, 1.0));
-      float d = hash(i + vec2(1.0, 1.0));
-      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-    }
-
-    float fbm(vec2 p) {
-      float v = 0.0;
-      float a = 0.5;
-      for (int i = 0; i < 5; i++) {
-        v += a * noise(p);
-        p *= 2.0;
-        a *= 0.5;
-      }
-      return v;
-    }
-
-    void main() {
-      float grain = fbm(vUv * 2000.0);
-      float grain2 = fbm(vUv * 3500.0 + 42.0);
-      float fiber = noise(vec2(vUv.x * 800.0, vUv.y * 120.0)) * 0.15;
-
-      float tex = grain * 0.6 + grain2 * 0.3 + fiber * 0.1;
-      vec3 color = uBaseColor + (tex - 0.5) * uGrainStrength;
-
-      // Soft vignette
-      vec2 vig = vUv - 0.5;
-      float vigAmount = 1.0 - dot(vig, vig) * 0.6;
-      color *= vigAmount;
-
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `,
-})
-
-function PaperBackground() {
-  const { viewport } = useThree()
-  return (
-    <mesh position={[0, 0, -0.5]}>
-      <planeGeometry args={[viewport.width * 2, viewport.height * 2]} />
-      <primitive object={paperMaterial} attach="material" />
-    </mesh>
-  )
-}
-
-
-// Scene content wrapper
-function SceneContent({
-  onNavigate,
-  crumbled,
-  crumbleTriggered,
-  voxelPositions,
-  voxelSize,
-  explosionForce,
-  attractionForce,
-  spiralForce,
-  onCubeDockedChange,
-  cubeDocked,
+function ExperienceRow({
+  exp,
+  variants,
 }: {
-  onNavigate?: (href: string) => void
-  crumbled: boolean
-  crumbleTriggered: boolean
-  voxelPositions: THREE.Vector3[]
-  voxelSize: number
-  explosionForce: number
-  attractionForce: number
-  spiralForce: number
-  onCubeDockedChange?: (docked: boolean) => void
-  cubeDocked: boolean
+  exp: (typeof experience)[number];
+  variants: typeof fadeUp;
 }) {
-  const lightCubeBodyRef = useRef<RapierRigidBody | null>(null)
-  const dockedRef = useRef(false)
-
-  const handleDockedChange = useCallback((docked: boolean) => {
-    dockedRef.current = docked
-    onCubeDockedChange?.(docked)
-  }, [onCubeDockedChange])
+  const [open, setOpen] = useState(false);
 
   return (
-    <>
-      <PaperBackground />
-      <Physics gravity={[0, 0, -9.8]} timeStep={1/240}>
-        <GroundPlane />
-        {!crumbled && <Text3DKeino />}
-        {crumbled && voxelPositions.length > 0 && (
-          <PhysicsVoxelCloud
-            positions={voxelPositions}
-            voxelSize={voxelSize}
-            crumble={crumbleTriggered}
-            bounceStrength={explosionForce}
-            attractionForce={attractionForce}
-            color="#2a2a2a"
-            metalness={0.15}
-            roughness={0.35}
-            spiralForce={spiralForce}
-            lightCubeBodyRef={lightCubeBodyRef}
+    <motion.div
+      className="border-b border-[#1A1A1A] cursor-pointer select-none"
+      variants={variants}
+      transition={{ duration: 0.5 }}
+      onClick={() => setOpen((o) => !o)}
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between py-6">
+        <div className="flex items-center gap-3">
+          <span className="font-headline text-[28px] font-semibold text-white">
+            {exp.role}
+          </span>
+          <ChevronDown
+            size={18}
+            className={`text-[#444] transition-transform duration-300 ${open ? "rotate-180" : ""}`}
           />
+        </div>
+        <div className="flex items-center gap-8 mt-2 md:mt-0">
+          <span className="font-body text-[16px] text-[#555]">
+            {exp.company}
+          </span>
+          <span className="font-body text-[14px] text-[#444]">
+            {exp.dates}
+          </span>
+        </div>
+      </div>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="pb-6">
+              <p className="font-body text-[15px] text-[#666] leading-[1.7] max-w-[720px]">
+                {exp.summary}
+              </p>
+              {"highlights" in exp && exp.highlights && (
+                <ul className="mt-4 flex flex-col gap-2">
+                  {exp.highlights.map((h, i) => (
+                    <li
+                      key={i}
+                      className="font-body text-[14px] text-[#555] leading-[1.6] pl-4 relative before:content-[''] before:absolute before:left-0 before:top-[10px] before:w-[6px] before:h-[6px] before:rounded-full before:bg-[#333]"
+                    >
+                      {h}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </motion.div>
         )}
-        <LightCube bodyRef={lightCubeBodyRef} dockedRef={dockedRef} />
-      </Physics>
-
-      <CubeSocket bodyRef={lightCubeBodyRef} onDockedChange={handleDockedChange} onNavigate={onNavigate} />
-
-      <EffectComposer>
-        <Bloom
-          intensity={0.5}
-          luminanceThreshold={0.9}
-          luminanceSmoothing={0.025}
-          radius={0.4}
-          mipmapBlur
-        />
-      </EffectComposer>
-    </>
-  )
+      </AnimatePresence>
+    </motion.div>
+  );
 }
-
-/** Preloads voxel positions for text (runs once on mount) */
-function useVoxelText(text: string, resolution: number) {
-  const [positions, setPositions] = useState<THREE.Vector3[]>([])
-
-  useEffect(() => {
-    let cancelled = false
-    voxelizeText(text, { resolution }).then((voxels) => {
-      if (!cancelled) setPositions(voxels)
-    })
-    return () => { cancelled = true }
-  }, [text, resolution])
-
-  return positions
-}
-
-const STORAGE_KEY = 'keino-voxel-settings'
-const DEFAULTS = { resolution: 5, explosionForce: 6, attractionForce: 4, spiralForce: 30 }
-
-function loadSettings() {
-  if (typeof window === 'undefined') return DEFAULTS
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return DEFAULTS
-    return { ...DEFAULTS, ...JSON.parse(raw) }
-  } catch { return DEFAULTS }
-}
-
-function saveSettings(s: typeof DEFAULTS) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch {}
-}
-
-type PageId = 'work' | 'about' | 'experience' | 'lab' | 'contact'
-
-const PAGE_CONTENT: Record<PageId, { title: string; description: string }> = {
-  work: { title: 'Work', description: 'Selected projects and case studies.' },
-  about: { title: 'About', description: 'Designer and developer based in Brooklyn, NY.' },
-  experience: { title: 'Experience', description: 'Professional background and journey.' },
-  lab: { title: 'Lab', description: 'Experiments, prototypes, and explorations.' },
-  contact: { title: 'Contact', description: 'Get in touch.' },
-}
-
-// Map nav hrefs to page ids
-const HREF_TO_PAGE: Record<string, PageId> = {
-  '/work': 'work',
-  '/about': 'about',
-  '/experience': 'experience',
-  '/experiment': 'lab',
-  '/contact': 'contact',
-}
-
-// Pages with in-wedge content (no crumble/overlay needed)
-const IN_WEDGE_PAGES = new Set<PageId>(['about', 'experience'])
 
 export default function Home() {
-  const [crumbled, setCrumbled] = useState(false)
-  const [crumbleTriggered, setCrumbleTriggered] = useState(false)
-  const [activePage, setActivePage] = useState<PageId | null>(null)
-  const [cubeDocked, setCubeDocked] = useState(false)
-  const [initialized, setInitialized] = useState(false)
-  const [resolution, setResolution] = useState(DEFAULTS.resolution)
-  const [explosionForce, setExplosionForce] = useState(DEFAULTS.explosionForce)
-  const [attractionForce, setAttractionForce] = useState(DEFAULTS.attractionForce)
-  const [spiralForce, setSpiralForce] = useState(DEFAULTS.spiralForce)
-
-  // Hydrate from localStorage on mount
-  useEffect(() => {
-    const s = loadSettings()
-    setResolution(s.resolution)
-    setExplosionForce(s.explosionForce)
-    setAttractionForce(s.attractionForce)
-    setSpiralForce(s.spiralForce)
-    setInitialized(true)
-  }, [])
-
-  // Persist on change (skip initial hydration)
-  useEffect(() => {
-    if (!initialized) return
-    saveSettings({ resolution, explosionForce, attractionForce, spiralForce })
-  }, [initialized, resolution, explosionForce, attractionForce, spiralForce])
-
-  const voxelSize = useMemo(() => 0.14 - (resolution - 1) / 9 * 0.07, [resolution])
-  const voxelPositions = useVoxelText('KEINO', voxelSize)
-
-  const handleNavigate = useCallback((href: string) => {
-    const pageId = HREF_TO_PAGE[href]
-    if (!pageId) return
-    // Pages with in-wedge content are handled by WedgeContent in CubeSocket
-    if (IN_WEDGE_PAGES.has(pageId)) {
-      // Clear any previous overlay page
-      if (activePage) {
-        setActivePage(null)
-        setCrumbled(false)
-        setCrumbleTriggered(false)
-      }
-      return
-    }
-    if (!crumbled) {
-      setCrumbled(true)
-      setCrumbleTriggered(true)
-    }
-    // Delay page reveal slightly so crumble animation starts first
-    setTimeout(() => setActivePage(pageId), 400)
-  }, [crumbled, activePage])
-
-  const handleReset = useCallback(() => {
-    setActivePage(null)
-    setCrumbled(false)
-    setCrumbleTriggered(false)
-  }, [])
-
   return (
-    <div className="fixed inset-0" style={{ backgroundColor: '#0d0d0f' }}>
-      <Canvas
-        orthographic
-        camera={{ position: [0, 0, 100], zoom: 80, near: 0.1, far: 1000 }}
-        style={{ touchAction: 'none', background: 'transparent' }}
-        gl={{ antialias: true, alpha: true }}
-      >
-        <ambientLight intensity={0.08} />
-        <directionalLight color="#ffffff" intensity={0.15} position={[0, 0, 10]} />
-        <Suspense fallback={null}>
-          <SceneContent
-            onNavigate={handleNavigate}
-            crumbled={crumbled}
-            crumbleTriggered={crumbleTriggered}
-            voxelPositions={voxelPositions}
-            voxelSize={voxelSize}
-            explosionForce={explosionForce}
-            attractionForce={attractionForce}
-            spiralForce={spiralForce / 100}
-            onCubeDockedChange={setCubeDocked}
-            cubeDocked={cubeDocked}
-          />
-        </Suspense>
-      </Canvas>
+    <LenisProvider>
+      <div className="min-h-screen bg-[#090909] text-white relative">
+        {/* Grain overlay */}
+        <div className="paper-grain fixed inset-0 z-[100] pointer-events-none opacity-15" />
 
-      {/* Page content overlay */}
-      {activePage && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-          <div className="pointer-events-auto max-w-2xl w-full mx-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <button
-              onClick={handleReset}
-              className="mb-6 text-white/40 hover:text-white/70 text-sm transition-colors"
+        <Nav />
+
+        {/* Hero */}
+        <section className="min-h-screen flex items-center px-6 md:px-12 max-w-[1400px] mx-auto pt-16">
+          <motion.div
+            className="w-full flex flex-col md:flex-row md:items-end md:justify-between gap-12"
+            initial="hidden"
+            animate="visible"
+            variants={stagger}
+          >
+            <div>
+              <motion.h1
+                className="font-headline text-[clamp(56px,10vw,96px)] font-bold text-white leading-[0.95] tracking-[-3px]"
+                variants={fadeUp}
+                transition={{ duration: 0.8 }}
+              >
+                Keino
+                <br />
+                Chichester
+              </motion.h1>
+              <motion.p
+                className="mt-6 font-body text-[20px] text-[#444] tracking-[1px] uppercase"
+                variants={fadeUp}
+                transition={{ duration: 0.8 }}
+              >
+                Full-Stack Software Engineer
+              </motion.p>
+            </div>
+            <motion.div
+              className="max-w-[380px] md:text-right"
+              variants={fadeUp}
+              transition={{ duration: 0.8 }}
             >
-              &larr; Back
-            </button>
-            <h1 className="text-4xl font-extrabold uppercase tracking-widest text-white/80 mb-4">
-              {PAGE_CONTENT[activePage].title}
-            </h1>
-            <p className="text-white/50 text-lg">
-              {PAGE_CONTENT[activePage].description}
-            </p>
+              <p className="font-body text-[16px] text-[#666] leading-relaxed">
+                3+ years building production web apps.
+                <br />
+                8 years in healthcare finance.
+                <br />
+                Code meets business context.
+              </p>
+            </motion.div>
+          </motion.div>
+        </section>
+
+        {/* Selected Work */}
+        <section id="work" className="px-6 md:px-12 max-w-[1400px] mx-auto py-32">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={stagger}
+          >
+            <motion.span
+              className="font-headline text-[14px] text-[#444] tracking-[2px] uppercase block mb-12"
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+            >
+              Selected Work
+            </motion.span>
+            <div className="flex flex-col gap-[2px]">
+            {projects.map((project) => (
+              <motion.div key={project.slug} variants={fadeUp} transition={{ duration: 0.6 }}>
+                <Link href={`/work/${project.slug}`} className="group block">
+                  <div className="h-[400px] bg-[#141414] rounded-xl overflow-hidden relative">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="font-headline text-[24px] text-[#333] font-semibold">
+                        {project.title}
+                      </span>
+                    </div>
+                    <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.03]" />
+                  </div>
+                  <div className="flex items-center justify-between py-5">
+                    <div className="flex items-center gap-6">
+                      <span className="font-body text-[14px] text-[#333] tabular-nums">
+                        {project.number}
+                      </span>
+                      <span className="font-headline text-[28px] font-semibold text-white">
+                        {project.title}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <span className="font-body text-[13px] text-[#444]">
+                        {project.category}
+                      </span>
+                      <ArrowUpRight
+                        size={20}
+                        className="text-[#333] transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1"
+                      />
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+            </div>
+          </motion.div>
+        </section>
+
+        {/* About */}
+        <section id="about" className="px-6 md:px-12 max-w-[1400px] mx-auto py-32">
+          <motion.div
+            className="flex flex-col md:flex-row gap-16 md:gap-24"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={stagger}
+          >
+            <div className="md:flex-1">
+              <motion.span
+                className="font-headline text-[14px] text-[#444] tracking-[2px] uppercase block mb-8"
+                variants={fadeUp}
+                transition={{ duration: 0.6 }}
+              >
+                About
+              </motion.span>
+              <motion.h2
+                className="font-headline text-[clamp(32px,5vw,48px)] font-semibold text-white leading-[1.1]"
+                variants={fadeUp}
+                transition={{ duration: 0.6 }}
+              >
+                I build things that make
+                <br />
+                businesses work better.
+              </motion.h2>
+            </div>
+            <motion.div
+              className="md:w-[480px]"
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+            >
+              <p className="font-body text-[16px] text-[#666] leading-[1.7] mb-6">
+                I&apos;m a software engineer with a background in healthcare
+                finance. Before writing code professionally, I spent 8 years as
+                a financial analyst at organizations like NYU Langone and Pager
+                Inc., where I learned how businesses actually operate — budgets,
+                forecasts, variance analysis, the works.
+              </p>
+              <p className="font-body text-[16px] text-[#666] leading-[1.7]">
+                Now I combine that domain expertise with full-stack development.
+                I build tools that solve real business problems — not just
+                technically sound software, but products that make sense to the
+                people using them.
+              </p>
+            </motion.div>
+          </motion.div>
+        </section>
+
+        {/* Experience */}
+        <section id="experience" className="px-6 md:px-12 max-w-[1400px] mx-auto py-32">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={stagger}
+          >
+            <motion.span
+              className="font-headline text-[14px] text-[#444] tracking-[2px] uppercase block mb-12"
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+            >
+              Experience
+            </motion.span>
+            <div className="border-t border-[#1A1A1A]">
+              {experience.map((exp, i) => (
+                <ExperienceRow key={i} exp={exp} variants={fadeUp} />
+              ))}
+            </div>
+          </motion.div>
+        </section>
+
+        {/* CTA */}
+        <section id="contact" className="px-6 md:px-12 max-w-[1400px] mx-auto py-32 text-center">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={stagger}
+          >
+            <motion.h2
+              className="font-headline text-[clamp(40px,8vw,72px)] font-semibold text-white"
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+            >
+              Let&apos;s work together.
+            </motion.h2>
+            <motion.p
+              className="font-body text-[18px] text-[#555] mt-6 mb-12"
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+            >
+              Have a project in mind? I&apos;m currently available for freelance
+              work.
+            </motion.p>
+            <motion.div
+              className="flex items-center justify-center gap-4 flex-wrap"
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+            >
+              <a
+                href="mailto:keino@keino.dev"
+                className="font-body text-[14px] px-8 py-3 rounded-full bg-white text-[#090909] font-medium hover:bg-[#ddd] transition-colors"
+              >
+                Get in touch
+              </a>
+              <a
+                href="/resume.pdf"
+                className="font-body text-[14px] px-8 py-3 rounded-full border border-[#222] text-[#888] hover:border-[#555] hover:text-white transition-colors"
+              >
+                View resume
+              </a>
+            </motion.div>
+          </motion.div>
+        </section>
+
+        {/* Footer */}
+        <footer className="px-6 md:px-12 max-w-[1400px] mx-auto py-8 border-t border-[#1A1A1A]">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <span className="font-body text-[13px] text-[#444]">
+              &copy; 2025 Keino Chichester — Brooklyn, NY
+            </span>
+            <div className="flex items-center gap-6">
+              <a
+                href="https://github.com/keinoc"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#444] hover:text-white transition-colors"
+              >
+                <GithubIcon size={18} />
+              </a>
+              <a
+                href="https://linkedin.com/in/keinochichester"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#444] hover:text-white transition-colors"
+              >
+                <LinkedinIcon size={18} />
+              </a>
+              <a
+                href="mailto:keino@keino.dev"
+                className="text-[#444] hover:text-white transition-colors"
+              >
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </a>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  )
+        </footer>
+      </div>
+    </LenisProvider>
+  );
 }

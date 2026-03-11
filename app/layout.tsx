@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Antonio } from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  Space_Grotesk,
+  DM_Sans,
+} from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,28 +17,45 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const antonio = Antonio({
-  variable: "--font-display",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
+  subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
-  title: "Keino Campbell - Full Stack Developer",
-  description: "Interactive skill tree portfolio showcasing my development journey, technical expertise, and professional achievements in web development, AI, and cloud technologies.",
-  keywords: ["Full Stack Developer", "React", "Next.js", "TypeScript", "Node.js", "AI", "Portfolio"],
-  authors: [{ name: "Keino Campbell" }],
+  title: "Keino Chichester — Full-Stack Software Engineer",
+  description:
+    "Full-stack software engineer based in Brooklyn, NY. Building production web apps with 8 years of healthcare finance experience.",
+  keywords: [
+    "Full Stack Developer",
+    "React",
+    "Next.js",
+    "TypeScript",
+    "Node.js",
+    "AI",
+    "Portfolio",
+  ],
+  authors: [{ name: "Keino Chichester" }],
   openGraph: {
-    title: "Keino Campbell - Full Stack Developer",
-    description: "Interactive skill tree portfolio showcasing my development journey",
+    title: "Keino Chichester — Full-Stack Software Engineer",
+    description:
+      "Full-stack software engineer based in Brooklyn, NY. Building production web apps with 8 years of healthcare finance experience.",
     url: "https://keino.dev",
-    siteName: "Keino Campbell Portfolio",
+    siteName: "Keino Chichester",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Keino Campbell - Full Stack Developer",
-    description: "Interactive skill tree portfolio showcasing my development journey",
+    title: "Keino Chichester — Full-Stack Software Engineer",
+    description:
+      "Full-stack software engineer based in Brooklyn, NY.",
   },
 };
 
@@ -45,7 +67,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${antonio.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${dmSans.variable} antialiased`}
       >
         {children}
       </body>
