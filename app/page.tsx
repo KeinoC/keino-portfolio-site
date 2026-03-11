@@ -210,7 +210,7 @@ export default function Home() {
                 variants={fadeUp}
                 transition={{ duration: 0.8 }}
               >
-                Full-Stack Software Engineer
+                Product Engineer
               </motion.p>
             </div>
             <motion.div

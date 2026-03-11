@@ -30,10 +30,11 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Keino Chichester — Full-Stack Software Engineer",
+  title: "Keino Chichester — Product Engineer",
   description:
-    "Full-stack software engineer based in Brooklyn, NY. Building production web apps with 8 years of healthcare finance experience.",
+    "Product engineer based in Brooklyn, NY. I build full-stack web apps that solve real business problems — 3+ years shipping software, 8 years in finance.",
   keywords: [
+    "Product Engineer",
     "Full Stack Developer",
     "React",
     "Next.js",
@@ -44,18 +45,18 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Keino Chichester" }],
   openGraph: {
-    title: "Keino Chichester — Full-Stack Software Engineer",
+    title: "Keino Chichester — Product Engineer",
     description:
-      "Full-stack software engineer based in Brooklyn, NY. Building production web apps with 8 years of healthcare finance experience.",
+      "Product engineer based in Brooklyn, NY. I build full-stack web apps that solve real business problems — 3+ years shipping software, 8 years in finance.",
     url: "https://keino.dev",
     siteName: "Keino Chichester",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Keino Chichester — Full-Stack Software Engineer",
+    title: "Keino Chichester — Product Engineer",
     description:
-      "Full-stack software engineer based in Brooklyn, NY.",
+      "Product engineer based in Brooklyn, NY. I build full-stack web apps that solve real business problems.",
   },
 };
 
