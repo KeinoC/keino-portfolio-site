@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# K-Tingz shared pre-commit (managed by .shared-hooks/install.sh).
+# Add project-specific checks BELOW the marker; do not edit above.
+
+SHARED_DIR="$(git rev-parse --show-toplevel)/../.shared-hooks"
+if [ -f "$SHARED_DIR/pre-commit.sh" ]; then
+  KTINGZ_SHARED_DIR="$SHARED_DIR" . "$SHARED_DIR/pre-commit.sh" || exit 1
+else
+  echo "⚠️  Shared hooks not found at $SHARED_DIR — skipping shared checks"
+fi
+
+# --- project-specific checks below this line ---

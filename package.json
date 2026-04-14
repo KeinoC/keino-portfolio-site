@@ -6,7 +6,8 @@
     "dev": "sh -c 'lsof -ti:3003 | xargs kill -9 2>/dev/null || true; exec next dev --turbopack -p 3003'",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prepare": "husky"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -33,6 +34,8 @@
     "@types/three": "^0.181.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
