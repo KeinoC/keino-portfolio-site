@@ -323,8 +323,8 @@ export default function Home() {
               variants={fadeUp}
               transition={{ duration: 0.6 }}
             >
-              Have a project in mind? I&apos;m currently available for freelance
-              work.
+              Currently exploring full-time software engineering roles. Also
+              open to freelance and contract work.
             </motion.p>
             <motion.div
               className="flex items-center justify-center gap-4 flex-wrap"
