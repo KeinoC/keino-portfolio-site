@@ -30,6 +30,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://keino.dev"),
   title: "Keino Chichester — Product Engineer",
   description:
     "Product engineer based in Brooklyn, NY. I build full-stack web apps that solve real business problems — 3+ years shipping software, 8 years in finance.",
