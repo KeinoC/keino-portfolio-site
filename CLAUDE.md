@@ -2,129 +2,124 @@
 
 ## Project Overview
 
-Interactive 3D portfolio site built with Next.js and React Three Fiber. Features a physics-enabled scene with draggable light cube, KEINO letter sculptures, bot companion, and page-based project showcases. The 3D world uses Rapier for physics simulation with an orthographic camera.
+Keino Chichester's personal portfolio at **keino.dev**. A minimal, dark, typography-first Next.js site that showcases software engineering work, experience, and contact info. Intended primary audience: software engineering recruiters / hiring managers.
+
+This is a single, deployed site — not an experimental playground. For the archived 3D/globe/physics experiment that used to live here, see `.claude/archived/` (components, routes, docs, and plans from that era are preserved in case we want to mine elements).
 
 ## Commands
 
 ```bash
-bun dev          # Start dev server (Turbopack) on port 3000
-bun build        # Production build (Turbopack)
+bun dev          # Dev server (Turbopack) on port 3000
+bun build        # Production build
 bun start        # Start production server
 bun lint         # ESLint
 ```
 
 ## Tech Stack
 
-- **Framework:** Next.js 15.5, React 19, TypeScript 5
-- **3D:** React Three Fiber 9, Three.js r181, @react-three/drei, @react-three/postprocessing
-- **Physics:** @react-three/rapier 2.2 (Rapier WASM)
-- **Animation:** Framer Motion 12
+- **Framework:** Next.js 15 App Router, React 19, TypeScript strict
 - **Styling:** Tailwind CSS 4
-- **UI:** Shadcn only (no Radix, no MUI)
+- **Animation:** Framer Motion 12
+- **Scroll:** Lenis (via `components/lenis-provider.tsx`)
+- **UI:** Shadcn only (no Radix directly, no MUI)
 - **Icons:** Lucide React
-- **Package Manager:** bun
+- **Package manager:** Bun
 
-## Project Structure
+## Live Site Structure
 
 ```
 app/
-  page.tsx              # Main homepage (redirects/wraps explore)
-  explore/page.tsx      # Primary 3D scene — cube, letters, physics world
-  experiment/           # Experimental features and prototypes
-  v2/                   # V2 iteration of the site
-  layout.tsx            # Root layout
-  globals.css           # Global styles
+  layout.tsx              # Root layout — fonts (Geist, Space Grotesk, DM Sans), global metadata
+  page.tsx                # Home: Hero → <SelectedWork/> → About → Experience accordion → CTA → Footer
+  globals.css             # Global styles + paper-grain utility
+  work/
+    [slug]/
+      page.tsx            # Case-study page, data-driven from lib/projects.ts
 
 components/
-  3d/                   # All 3D components (physics-enabled)
-    BotCube.tsx         # AI bot companion
-    WorldWalls.tsx      # Viewport boundary walls
-    MarbleFloor.tsx     # Floor collider + visual
-    HomePlatform.tsx    # Raised platform for letters
-    DetailPagePlane.tsx # Project page surfaces
-    Debris.tsx          # Scattered debris objects
-    DropZone.tsx        # Cube docking zone
-    RightLetters3D.tsx  # KEINO letter meshes
-    Card3D.tsx          # 3D card component
-    ui/                 # 3D UI elements (NavPanel3D, Neumorphic3DButton, GlassCard)
-  ui/                   # 2D UI components (GlassCard, NeumorphicButton)
-  hero-section.tsx      # Hero section
-  contact-section.tsx   # Contact section
-  footer.tsx            # Footer
+  nav.tsx                 # Fixed top nav, scroll-hide backdrop
+  lenis-provider.tsx      # Smooth-scroll wrapper
+  selected-work.tsx       # Scroll-driven stacked cards showcasing projects
 
 lib/
-  physics-groups.ts     # Collision groups, Z layers, physics dimensions (CENTRAL CONFIG)
-  constants.ts          # App-wide constants
-  utils.ts              # Utility functions
-  context-steering.ts   # Bot AI steering
-  mock-data.ts          # Mock data for development
+  projects.ts             # Source of truth for all project case studies (slug, title, tech, features, images, liveUrl)
 
-docs/
-  architecture/
-    viewport-boundaries.md  # How walls/boundaries work (READ THIS FIRST for physics)
-
-types/                  # TypeScript type definitions
+public/
+  screenshots/            # Project hero/gallery images
+  fonts/                  # Custom fonts (if any self-hosted)
+  resume.pdf              # Downloadable resume (linked from CTA)
 ```
 
-## Architecture — Physics World
+Anything in `components/` not listed above — and anything in `app/experiment/`, `app/paper-demo/`, `app/fallback/` — has been archived under `.claude/archived/` as of 2026-04-14. If you find references to `components/3d/`, `components/globe-world/`, `components/themes/`, `components/three-d-menu.tsx`, etc., they belong to the archived 3D experiment and should not be reinstated without explicit discussion.
 
-### Central Config: `lib/physics-groups.ts`
+## Adding / Editing a Project
 
-All physics configuration lives here:
-- **Collision groups** — bitmask-based filtering (FLOOR, PLATFORM, LETTERS, CUBE, WALLS, PAGES, DEBRIS, BOT)
-- **Collision configs** — pre-built `interactionGroups()` for each object type
-- **Z layers** — vertical positioning constants (FLOOR=0, PLATFORM_SURFACE=1.0, etc.)
-- **Physics dimensions** — wall thickness, floor size, platform sizes
+1. Open `lib/projects.ts`.
+2. Add a new entry to the `projects` array — `slug`, `title`, `shortDescription`, `tech`, `features`, `heroImage`, optional `liveUrl`, etc.
+3. Drop images into `public/screenshots/`.
+4. The home page Selected Work section and the `/work/[slug]` detail page pick up the new project automatically.
 
-### Key Physics Rules
+The page template is intentionally sparse — a planned expansion (outcomes, architecture, code snippets, gallery, what-I-learned) is tracked in `.claude/backlog/KEI-003` and `KEI-004`.
 
-- **Viewport bounds:** Always use `useThree().viewport`, NEVER raw camera frustum. See `docs/architecture/viewport-boundaries.md`
-- **Drag method:** Use `setTranslation` during drag + manual velocity tracking. NOT spring-based `setLinvel` (causes wall sticking)
-- **Gravity:** `[0, 0, -9.8]` — Z is "down" (into the screen/floor)
-- **Camera:** Orthographic, zoom 80→60 during scroll
+## Backlog
 
-### Tuned Physics Values
+All planned improvements live under `.claude/backlog/KEI-XXX-*.md` (same pattern as the other K-Tingz projects). See `.claude/backlog/README.md` for the full index and suggested execution order. Pick up the highest-priority `status: ready` ticket and update status to `in-progress` when you start.
 
-**Cube:** mass=2.0, restitution=0.7, friction=0.4, linearDamping=0.3, angularDamping=0.2
-**Walls:** restitution=0.8, friction=0.2
-**Letters:** mass=0.1, restitution=0.3, friction=0.4, linearDamping=0.5, angularDamping=0.3
+## Design Preferences
 
-Rules of thumb:
-- `linearDamping > 1.0` kills momentum (object stops dead)
-- `angularDamping > 1.0` prevents rolling
-- Wall `friction > 0.3` causes wall-riding instead of bouncing
-- Cube `mass < 0.5` feels weightless
+- No pure white (`#FFFFFF`) text — use off-white (`#F5F5F0`)
+- No pure black (`#000000`) text — use near-black (`#1A1A2E`)
+- Site palette is dark (`#090909` background). Accent colors kept muted — no neon.
+- Typography hierarchy uses `font-headline` (Space Grotesk) for titles and `font-body` (DM Sans) for body.
 
-### Debug Walls
+## Quality Gates (MANDATORY)
 
-`WorldWalls.tsx` currently has colored debug meshes (red=left, blue=right, green=top, yellow=bottom at 35% opacity). Remove `<mesh>` children for production.
+After ANY visual change (CSS, layout, component swaps):
 
-## Code Style
+1. Start dev server if not running.
+2. Navigate to affected page(s) — at minimum, the home route and any project page you touched.
+3. Take a screenshot and visually verify the result.
+4. For interactive features (scroll-driven cards, hover reveals, nav behavior), click through the full user flow.
+5. Test at both mobile (430px) and desktop (1440px) widths. Also sanity-check at 375px.
+6. NEVER say "Done" based only on typecheck — typecheck proves it compiles, not that it looks right.
+7. Check for horizontal overflow at each tested width — if overflowing, fix before moving on.
 
-- TypeScript strict mode
-- Tailwind CSS for styling (no CSS modules, no styled-components)
-- Shadcn for UI components (no Radix directly, no MUI)
-- Conventional commits for git messages
-- No Claude co-authoring in commits
+## Dogfood After Shipping
+
+Quality Gates prove a feature renders. Dogfooding proves it *works*. For every new feature or case-study content change:
+
+1. Use it as a real user would — click through Selected Work, scroll to the end, visit each project page, click "View Project", check the live URL works.
+2. Try empty states and edge cases: what does a project without a `heroImage` look like? What if `liveUrl` is missing?
+3. Test at mobile (430px) and desktop (1440px) widths.
+4. Actively try to break it for at least 30 seconds.
+5. File a ticket under `.claude/backlog/` for anything off.
+
+## Response Preferences (MANDATORY)
+
+- **Options → use `AskUserQuestion`, not text.** When presenting choices, use the `AskUserQuestion` tool — not letter/number lists in a code block.
+- **One question per call.** Never batch multiple questions into a single `AskUserQuestion` call — it triggers an extra "Submit all answers" step the user finds annoying. Issue single-question calls across turns.
+- **Multi-select = parallel execution.** When the user picks multiple options, dispatch them in parallel (one assistant turn, multiple tool calls).
+- **Proactive suggestions.** End a completed task with 1–3 concrete next-step suggestions. Don't suggest unasked-for refactors or scope expansion.
 
 ## Development Workflow
 
-- **RALPH Loop (default):** Rapid prototype → test in browser → iterate. Use placeholders freely. Ship working prototypes fast, polish later. Always exit plan mode into RALPH loop execution.
+- **RALPH loop (default):** Rapid prototype → test in browser → iterate. Use placeholders freely, ship working increments, polish later.
+- **Branching:** Implementation work goes on a feature branch → PR → review → merge. Never push implementation straight to `main`.
 
-## Key Patterns
+## Git Safety
 
-### 3D Components
-- All physics objects use `RigidBody` from `@react-three/rapier`
-- Collision filtering via `collisionGroups` prop with configs from `physics-groups.ts`
-- Components use `useFrame` for per-frame updates, `useThree` for scene access
+- **NEVER** use `--no-verify` on commit or push. If hooks fail, fix the underlying issue.
+- **NEVER** use `--force` / `--force-with-lease` without explicit user approval.
+- Never commit `.env` files or secrets.
 
-### Scroll-Based Scene
-- `explore/page.tsx` manages scroll progress (0→1)
-- Phase 1 (0→0.5): Homepage with KEINO letters, cube interaction
-- Phase 2 (0.5→1): Project pages slide in, platform transitions
+## Code Style
 
-### Cube Behavior
-- Draggable with pointer events
-- Idle hover: rises + grows 50% + glows after 1s of no interaction
-- Docks into socket to power nav panel
-- Releases with physics momentum on pointer up
+- TypeScript strict mode.
+- Tailwind CSS for styling (no CSS modules, no styled-components).
+- Shadcn only for UI primitives (no direct Radix, no MUI).
+- Conventional commits: `KEI-XXX: type(scope): message` or `type: message` when no ticket. No AI co-authoring attribution.
+
+## Security
+
+- Never commit `.env` files or secrets.
+- Validate inputs on both client and server (for any form/API work — the current site is mostly static content).

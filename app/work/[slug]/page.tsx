@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 import { LenisProvider } from "@/components/lenis-provider";
-import { getProject, projects } from "@/lib/projects";
+import { getProject } from "@/lib/projects";
 import { notFound } from "next/navigation";
 
 const fadeUp = {
