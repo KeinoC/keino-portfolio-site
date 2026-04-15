@@ -14,6 +14,17 @@ export interface Project {
   heroImage?: string;
   images?: string[];
   liveUrl?: string;
+  github?: string;
+  accent?: string;
+  outcomes?: { metric: string; description: string }[];
+  whatILearned?: string[];
+  architecture?: { summary: string; diagramImage?: string };
+  codeSnippet?: {
+    title: string;
+    language: string;
+    code: string;
+    caption?: string;
+  };
   nextProject?: { slug: string; title: string };
 }
 
