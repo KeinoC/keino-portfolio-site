@@ -24,6 +24,7 @@ type Args = {
   webp: boolean;
   state?: string;
   fullPage: boolean;
+  dark: boolean;
 };
 
 function parseArgs(): Args {
@@ -37,7 +38,7 @@ function parseArgs(): Args {
   const url = get("--url");
   const out = get("--out");
   if (!url || !out) {
-    console.error("Usage: bun run capture --url <url> --out <name> [--width N] [--height N] [--selector S] [--wait MS] [--webp] [--state PATH] [--full]");
+    console.error("Usage: bun run capture --url <url> --out <name> [--width N] [--height N] [--selector S] [--wait MS] [--webp] [--state PATH] [--full] [--dark]");
     process.exit(1);
   }
 
@@ -51,6 +52,7 @@ function parseArgs(): Args {
     webp: has("--webp"),
     state: get("--state"),
     fullPage: has("--full"),
+    dark: has("--dark"),
   };
 }
 
@@ -80,6 +82,7 @@ async function main() {
     viewport: { width: args.width, height: args.height },
     deviceScaleFactor: 2,
     storageState: args.state ? resolve(args.state) : undefined,
+    colorScheme: args.dark ? "dark" : undefined,
   });
   const page = await context.newPage();
 
