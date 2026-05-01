@@ -35,6 +35,7 @@ Prefix: `KEI-XXX`. One ticket per discrete improvement. Same pattern as `chicknz
 | KEI-016 | Fix Framer Motion useScroll non-static container warning | tier3 | done |
 | KEI-017 | Build a project-screenshot capture skill / script | tier2 | done |
 | KEI-018 | Cleanup unstaged working tree noise | tier3 | done |
+| KEI-019 | Forge BI cover images — capture better hero + supporting shots | tier2 | ready |
 
 ## Status (2026-05-01)
 
