@@ -46,6 +46,7 @@ export const projects: Project[] = [
     tech: ["Next.js", "TypeScript", "Prisma", "AI SDK", "Plaid"],
     accent: "#7c8db5",
     heroImage: "/screenshots/forge-bi-hero.png",
+    images: ["/screenshots/forge-bi-features.png"],
     liveUrl: "https://forge.keino.dev",
     features: [
       {
@@ -103,6 +104,7 @@ export const projects: Project[] = [
     ],
     accent: "#e08653",
     heroImage: "/screenshots/chicknz-hero.png",
+    liveUrl: "https://chicknz.vercel.app",
     features: [
       {
         number: "01",
@@ -158,8 +160,10 @@ export const projects: Project[] = [
       "Anthropic",
     ],
     accent: "#9d8bbf",
-    heroImage: "/screenshots/cantrip-session.png",
+    heroImage: "/screenshots/cantrip-hero.png",
+    liveUrl: "https://cantrip.vercel.app",
     images: [
+      "/screenshots/cantrip-session.png",
       "/screenshots/cantrip-character.png",
       "/screenshots/cantrip-editor.png",
       "/screenshots/cantrip-dashboard.png",

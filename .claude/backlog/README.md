@@ -35,11 +35,19 @@ Prefix: `KEI-XXX`. One ticket per discrete improvement. Same pattern as `chicknz
 | KEI-016 | Fix Framer Motion useScroll non-static container warning | tier3 | done |
 | KEI-017 | Build a project-screenshot capture skill / script | tier2 | done |
 | KEI-018 | Cleanup unstaged working tree noise | tier3 | done |
-| KEI-019 | Forge BI cover images — capture better hero + supporting shots | tier2 | ready |
+| KEI-019 | Forge BI cover images — capture better hero + supporting shots | tier2 | done |
+| KEI-020 | PiP demo prep & per-project decisions | tier2 | ready |
+| KEI-021 | Build `<DemoPiP/>` shell — drag, resize, dock states, iframe + video modes | tier2 | ready |
+| KEI-022 | Wire `<DemoTrigger/>` into /work/[slug] case-study pages | tier2 | ready |
+| KEI-023 | Ship iframe demos for owned projects (forge-bi, chicknz, cantrip, lhbk-web) | tier2 | blocked |
+| KEI-024 | Ship video demos for client projects (high-tide-capital, good-call-technologies) | tier2 | blocked |
+| KEI-025 | PiP mobile polish, a11y audit, analytics | tier2 | blocked |
 
 ## Status (2026-05-01)
 
-All 18 tickets shipped in a single chain. The portfolio is visit-ready: 7 projects with rich case studies (architecture + what-I-learned + per-project accents + GitHub pills), per-project SEO metadata, mobile nav drawer, optimized images, accessibility pass, polished hero with KC monogram, screenshot capture skill in place.
+All 18 original tickets shipped in a single chain. The portfolio is visit-ready: 7 projects with rich case studies (architecture + what-I-learned + per-project accents + GitHub pills), per-project SEO metadata, mobile nav drawer, optimized images, accessibility pass, polished hero with KC monogram, screenshot capture skill in place.
+
+**New chain (KEI-020 → KEI-025):** Picture-in-Picture project demos on `/work/[slug]`. Visitors can interact with a live demo (iframe for owned projects: forge-bi, chicknz, cantrip, lhbk-web) or watch a recorded walkthrough (video for client projects: high-tide-capital, good-call-technologies) in a draggable floating window without leaving the case study. Cross-project work (CSP, demo accounts, demo tenants) lands as separate tickets in each owned repo's backlog.
 
 **Open follow-ups (not tickets yet):**
 - Real numeric outcomes on each project (declined to fabricate; add as available)

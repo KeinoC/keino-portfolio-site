@@ -1,7 +1,7 @@
 ---
 id: KEI-019
 title: Forge BI cover images — capture better hero + supporting shots
-status: ready
+status: done
 priority: tier2
 estimate: small
 ---
