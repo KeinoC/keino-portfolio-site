@@ -6,7 +6,7 @@ SHARED_DIR="$(git rev-parse --show-toplevel)/../.shared-hooks"
 if [ -f "$SHARED_DIR/pre-commit.sh" ]; then
   KTINGZ_SHARED_DIR="$SHARED_DIR" . "$SHARED_DIR/pre-commit.sh" || exit 1
 else
-  echo "⚠️  Shared hooks not found at $SHARED_DIR — skipping shared checks"
+  echo "⚠️  Shared pre-commit hook not found at $SHARED_DIR — skipping shared checks"
 fi
 
 # --- project-specific checks below this line ---
