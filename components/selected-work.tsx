@@ -65,9 +65,18 @@ export function SelectedWork() {
     >
       <div className="sticky top-0 h-screen flex items-center px-6 md:px-12 max-w-[1400px] mx-auto">
         <div className="w-full">
-          <span className="font-headline text-[14px] text-[#444] tracking-[2px] uppercase block mb-6 md:mb-10">
-            Selected Work
-          </span>
+          <div className="flex items-baseline justify-between mb-6 md:mb-10">
+            <span className="font-headline text-[14px] text-[#444] tracking-[2px] uppercase">
+              Selected Work
+            </span>
+            <Link
+              href="/work"
+              className="inline-flex items-center gap-1.5 font-body text-[12px] text-[#666] hover:text-white transition-colors"
+            >
+              See all {projects.length}
+              <ArrowUpRight size={12} />
+            </Link>
+          </div>
 
           {/* Desktop: side-by-side */}
           <div className="hidden md:grid md:grid-cols-3 gap-12 relative">

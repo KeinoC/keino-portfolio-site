@@ -44,4 +44,5 @@ next-env.d.ts
 .playwright-mcp/
 audit-*.png
 verify-*.png
+live-*.png
 .auth/
