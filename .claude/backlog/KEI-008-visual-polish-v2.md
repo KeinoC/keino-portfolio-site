@@ -1,10 +1,17 @@
 ---
 id: KEI-008
 title: Visual polish v2 — transitions, accent colors, mobile nav
-status: ready
+status: done
 priority: tier2
 estimate: medium
 ---
+
+**Resolution (2026-05-01):** Took the high-value parts:
+- Per-project `accent` colors (muted hexes, no neon) tint the project number on case-study pages.
+- Mobile nav drawer (hamburger → full-screen overlay with large headline-typography links, body-scroll lock, AnimatePresence stagger, `aria-expanded`/`aria-controls`).
+
+**Skipped** — shared-element transitions. Framer's `layoutId` between Next App Router pages is fragile; the rest of the polish work delivers more value per hour. Park for now.
+
 
 ## Problem
 Once v1 polish (KEI-007) is in, three higher-effort differentiators remain:

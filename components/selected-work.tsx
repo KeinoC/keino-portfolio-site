@@ -57,7 +57,12 @@ export function SelectedWork() {
   const activeProject = projects[activeIndex];
 
   return (
-    <section id="work" ref={sectionRef} style={{ height: `${projects.length * 85}vh` }}>
+    <section
+      id="work"
+      ref={sectionRef}
+      className="relative"
+      style={{ height: `${projects.length * 85}vh` }}
+    >
       <div className="sticky top-0 h-screen flex items-center px-6 md:px-12 max-w-[1400px] mx-auto">
         <div className="w-full">
           <span className="font-headline text-[14px] text-[#444] tracking-[2px] uppercase block mb-6 md:mb-10">
@@ -160,7 +165,7 @@ export function SelectedWork() {
           {/* Mobile: card on top, info below */}
           <div className="md:hidden flex flex-col gap-4">
             {/* Cards */}
-            <div className="relative h-[240px]">
+            <div className="relative aspect-[16/10] w-full">
               {projects.map((project, i) => {
                 const offset = i - activeIndex;
                 if (offset < -1 || offset > 2) return null;
@@ -314,8 +319,9 @@ function CardInner({
             src={project.heroImage}
             alt={project.title}
             fill
+            priority={isActive}
             className="object-cover object-top"
-            sizes="(max-width: 768px) 100vw, 66vw"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 900px"
           />
           <motion.div className="absolute inset-0 bg-[#090909]" style={{ opacity: tintOpacity }} />
         </>
@@ -325,6 +331,19 @@ function CardInner({
             {project.title}
           </span>
         </div>
+      )}
+      {isActive && project.liveUrl && (
+        <a
+          href={project.liveUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 font-body text-[11px] text-white/90 hover:text-white px-3 py-1.5 rounded-full border border-white/30 bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-colors"
+          aria-label={`Open ${project.title} live site`}
+        >
+          Live
+          <ArrowUpRight size={11} />
+        </a>
       )}
       {isActive && (
         <Link

@@ -1,10 +1,16 @@
 ---
 id: KEI-007
 title: Visual polish v1 — hero anchor, mobile card fix, live-URL chip
-status: ready
+status: done
 priority: tier2
 estimate: small
 ---
+
+**Resolution (2026-05-01):**
+- Hero anchor: stylized "KC" monogram (calligraphic monoline SVG, `aria-hidden`) above the name. Subtle, blends with the muted `#555` palette.
+- Mobile card aspect ratio: `h-[240px]` → `aspect-[16/10] w-full`, so cards scale with viewport instead of fixed-height.
+- Live-URL chip: small "Live →" pill in the active card's top-right corner, opens `liveUrl` in a new tab. Uses `e.stopPropagation()` so it doesn't conflict with the card's view-project click handler.
+
 
 ## Problem
 Current design is minimal and professional but can feel *too* bare on first load:

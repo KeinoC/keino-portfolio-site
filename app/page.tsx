@@ -7,6 +7,47 @@ import { LenisProvider } from "@/components/lenis-provider";
 import { Nav } from "@/components/nav";
 import { SelectedWork } from "@/components/selected-work";
 
+function KCMonogram() {
+  return (
+    <svg
+      width="84"
+      height="48"
+      viewBox="0 0 84 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      className="text-[#555]"
+    >
+      {/* Stylized "KC" — calligraphic monoline */}
+      <path
+        d="M6 4 C 6 22, 6 32, 6 44"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6 24 C 14 24, 22 14, 30 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6 24 C 16 24, 24 32, 32 44"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M78 10 C 70 4, 58 4, 50 10 C 42 16, 42 32, 50 38 C 58 44, 70 44, 78 38"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
 function GithubIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -112,41 +153,56 @@ const experience = [
 function ExperienceRow({
   exp,
   variants,
+  index,
 }: {
   exp: (typeof experience)[number];
   variants: typeof fadeUp;
+  index: number;
 }) {
   const [open, setOpen] = useState(false);
+  const panelId = `experience-panel-${index}`;
+  const buttonId = `experience-button-${index}`;
 
   return (
     <motion.div
-      className="border-b border-[#1A1A1A] cursor-pointer select-none"
+      className="border-b border-[#1A1A1A]"
       variants={variants}
       transition={{ duration: 0.5 }}
-      onClick={() => setOpen((o) => !o)}
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between py-6">
-        <div className="flex items-center gap-3">
-          <span className="font-headline text-[28px] font-semibold text-white">
-            {exp.role}
-          </span>
-          <ChevronDown
-            size={18}
-            className={`text-[#444] transition-transform duration-300 ${open ? "rotate-180" : ""}`}
-          />
+      <button
+        type="button"
+        id={buttonId}
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((o) => !o)}
+        className="w-full text-left select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#090909] rounded-sm"
+      >
+        <div className="flex flex-col md:flex-row md:items-center justify-between py-6">
+          <div className="flex items-center gap-3">
+            <span className="font-headline text-[28px] font-semibold text-white">
+              {exp.role}
+            </span>
+            <ChevronDown
+              size={18}
+              className={`text-[#444] transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+            />
+          </div>
+          <div className="flex items-center gap-8 mt-2 md:mt-0">
+            <span className="font-body text-[16px] text-[#555]">
+              {exp.company}
+            </span>
+            <span className="font-body text-[14px] text-[#444]">
+              {exp.dates}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-8 mt-2 md:mt-0">
-          <span className="font-body text-[16px] text-[#555]">
-            {exp.company}
-          </span>
-          <span className="font-body text-[14px] text-[#444]">
-            {exp.dates}
-          </span>
-        </div>
-      </div>
+      </button>
       <AnimatePresence>
         {open && (
           <motion.div
+            id={panelId}
+            role="region"
+            aria-labelledby={buttonId}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -195,6 +251,13 @@ export default function Home() {
             variants={stagger}
           >
             <div>
+              <motion.div
+                variants={fadeUp}
+                transition={{ duration: 0.8 }}
+                className="mb-6"
+              >
+                <KCMonogram />
+              </motion.div>
               <motion.h1
                 className="font-headline text-[clamp(56px,10vw,96px)] font-bold text-white leading-[0.95] tracking-[-3px]"
                 variants={fadeUp}
@@ -209,7 +272,7 @@ export default function Home() {
                 variants={fadeUp}
                 transition={{ duration: 0.8 }}
               >
-                Product Engineer
+                Software Engineer
               </motion.p>
             </div>
             <motion.div
@@ -297,7 +360,7 @@ export default function Home() {
             </motion.span>
             <div className="border-t border-[#1A1A1A]">
               {experience.map((exp, i) => (
-                <ExperienceRow key={i} exp={exp} variants={fadeUp} />
+                <ExperienceRow key={i} exp={exp} variants={fadeUp} index={i} />
               ))}
             </div>
           </motion.div>
@@ -351,7 +414,7 @@ export default function Home() {
         <footer className="px-6 md:px-12 max-w-[1400px] mx-auto py-8 border-t border-[#1A1A1A]">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <span className="font-body text-[13px] text-[#444]">
-              &copy; 2025 Keino Chichester — Brooklyn, NY
+              &copy; {new Date().getFullYear()} Keino Chichester — Brooklyn, NY
             </span>
             <div className="flex items-center gap-6">
               <a
