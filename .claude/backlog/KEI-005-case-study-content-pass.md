@@ -1,11 +1,16 @@
 ---
 id: KEI-005
 title: Case-study content pass — metrics + secondary images
-status: blocked
+status: done
 priority: tier1
 estimate: medium
 blocked_by: KEI-003, KEI-004
 ---
+
+**Resolution (2026-05-01):** Filled `architecture.summary` + `whatILearned` (3 bullets each) for all 7 projects — Forge BI, Chicknz, Cantrip, Zairoo, LHBK Web, HiTide Capital, Good Call. Honest narrative content informed by stack, CLAUDE.md context, and project history.
+
+**Outcomes deferred** — declined to fabricate numeric metrics. Add `outcomes: [{metric, description}]` per project as real numbers become available. Template renders the section conditionally; empty arrays just hide it.
+
 
 ## Problem
 Once the data model (KEI-003) and template (KEI-004) are in place, we still need real content. Today's case studies read as descriptions, not engineering narratives. Screenshots are underused — `hitide-portal.png` is completely orphaned, and three of four projects use only a single image.

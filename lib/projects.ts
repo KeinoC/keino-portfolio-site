@@ -44,8 +44,8 @@ export const projects: Project[] = [
     timeline: "Oct 2024 — Ongoing",
     client: "Personal Product",
     tech: ["Next.js", "TypeScript", "Prisma", "AI SDK", "Plaid"],
+    accent: "#7c8db5",
     heroImage: "/screenshots/forge-bi-hero.png",
-    images: ["/screenshots/forge-bi-hero.png"],
     liveUrl: "https://forge.keino.dev",
     features: [
       {
@@ -67,11 +67,238 @@ export const projects: Project[] = [
           "Auto-tracked financial goals — revenue targets, profit margins, break-even analysis. Progress updates automatically from live data.",
       },
     ],
-    nextProject: { slug: "high-tide-capital", title: "High Tide Capital" },
+    architecture: {
+      summary:
+        "Plaid pulls transaction data into a Prisma-modeled financial schema (accounts, transactions, derived metrics). The AI Chat layer is a Vercel AI SDK orchestration that translates natural-language questions into typed queries over that schema, then renders charts/tables inline. Goals are background-evaluated against the same data — no manual reconciliation step. Eight years of healthcare finance taught me which questions founders actually ask, so the schema and prompt scaffolding are tuned for variance analysis and runway over generic BI.",
+    },
+    whatILearned: [
+      "Domain knowledge changes the schema. A general-purpose finance schema would have made the AI's job harder — naming things the way analysts name them (variance, runway, burn) lets the model reason in the user's language.",
+      "AI as an analyst replacement, not a chatbot. The interface prefers charts and tables over conversation; chat is the input, not the output.",
+      "Plaid's realtime story is rougher than the marketing implies. Webhook reconciliation + a backfill cron is more reliable than trusting any single signal.",
+    ],
+    nextProject: { slug: "chicknz", title: "Chicknz" },
+  },
+  {
+    slug: "chicknz",
+    number: "02",
+    title: "Chicknz",
+    shortDescription:
+      "Multi-tenant, AI-native family management. Chores, rewards, and skill trees for kids 4–16.",
+    category: "AI / Multi-tenant SaaS",
+    overview:
+      "Chicknz is a multi-tenant family management app built around an age-adaptive UI — one codebase that serves four distinct complexity tiers (little, kid, tween, teen) so a four-year-old and a fourteen-year-old get experiences tuned to their reading level, motor skills, and motivation patterns.\n\nThe stack is Next.js 15, Prisma + PostgreSQL, Better Auth for parent/kid auth (OAuth + PIN), Vercel AI SDK with Anthropic Claude for background intelligence (chore rotation, summaries, NL task creation), Ably for realtime, and a Vercel Blob layer for media.",
+    challenge:
+      "Family-management apps either ship a single generic UI that doesn't fit any age group, or shard into multiple apps and lose the shared family state. The goal was to keep one shared multi-tenant data model — every query scoped by `familyId` — while presenting four parallel UI tiers driven by CSS custom properties and CVA variants.",
+    role: "Founder / Full-Stack Engineer",
+    timeline: "Feb 2026 — Ongoing",
+    client: "Personal Product",
+    tech: [
+      "Next.js",
+      "TypeScript",
+      "Prisma",
+      "Better Auth",
+      "AI SDK",
+      "Bun",
+      "Ably",
+    ],
+    accent: "#e08653",
+    heroImage: "/screenshots/chicknz-hero.png",
+    features: [
+      {
+        number: "01",
+        title: "Age-Adaptive UI",
+        description:
+          "Four UI tiers (little / kid / tween / teen) driven by CSS custom properties and CVA variants. Tap targets, icon size, density, and reading level all flex per age group from a single component library.",
+      },
+      {
+        number: "02",
+        title: "AI Background Intelligence",
+        description:
+          "Anthropic Claude (Haiku for fast paths, Sonnet for generation) powers natural-language chore creation, fair-rotation scheduling, and weekly family summaries — embedded in the workflow, not bolted on as a chatbot.",
+      },
+      {
+        number: "03",
+        title: "Multi-Tenant by familyId",
+        description:
+          "Every database query and AI call is scoped to a familyId. Better Auth handles parent OAuth and kid PIN flows; Ably broadcasts realtime updates inside a family without crossing tenant boundaries.",
+      },
+    ],
+    architecture: {
+      summary:
+        "One Next.js codebase, four UI tiers. CSS custom properties (`--tap-target`, `--icon-size`, `--text-density`) and CVA variants drive age-adaptive components — no per-age fork. Prisma schema is multi-tenant by `familyId`; every query is scoped at the data layer, never relying on client filtering. AI lives behind a service boundary (`packages/ai`) that takes structured intent (\"create chore\", \"summarize week\") rather than free chat — the AI is background intelligence, not a chatbot.",
+    },
+    whatILearned: [
+      "Age-adaptive UI works as engineering, not just design. CSS tokens + CVA variants made it cheap to ship four tiers from one component library — the alternative (forking) would have killed velocity.",
+      "Multi-tenancy at the query layer beats middleware checks. Scoping by `familyId` in Prisma extension code means a missed scope is a type error, not a security incident.",
+      "AI-as-orchestrator vs AI-as-chatbot. Wiring Claude into chore rotation, scheduling, and weekly summaries makes the product feel intelligent without ever exposing a chat surface to a child.",
+    ],
+    nextProject: { slug: "cantrip", title: "Cantrip" },
+  },
+  {
+    slug: "cantrip",
+    number: "03",
+    title: "Cantrip",
+    shortDescription:
+      "Multi-tenant AI Dungeon Master platform. Publishers ship rulesets, players play with an AI DM.",
+    category: "AI / Platform",
+    overview:
+      "Cantrip is a multi-tenant TTRPG platform where game publishers ship rulesets and players run sessions with an AI Dungeon Master. The same architectural backbone as Chicknz (multi-tenant, oRPC, Prisma, Better Auth) but applied to a creative-tools domain — the AI is the host, not a chatbot.\n\nFlagship ruleset: Zairoo, an Afrocentric original system that doubles as the platform's reference content while the editor and session experience are stress-tested.",
+    challenge:
+      "Existing virtual-tabletop tools force publishers into a fixed rules engine, and AI DM tools tend to be single-system. Cantrip splits the layer cleanly: an extractable rules engine SDK + a tenant-isolated session runtime + an AI orchestrator that knows the active ruleset's grammar. Publishers get authoring tools; players get a host that doesn't break character.",
+    role: "Founder / Full-Stack Engineer",
+    timeline: "Mar 2026 — Ongoing",
+    client: "Personal Product",
+    tech: [
+      "Next.js",
+      "TypeScript",
+      "Prisma",
+      "oRPC",
+      "Better Auth",
+      "AI SDK",
+      "Anthropic",
+    ],
+    accent: "#9d8bbf",
+    heroImage: "/screenshots/cantrip-session.png",
+    images: [
+      "/screenshots/cantrip-character.png",
+      "/screenshots/cantrip-editor.png",
+      "/screenshots/cantrip-dashboard.png",
+    ],
+    features: [
+      {
+        number: "01",
+        title: "AI Dungeon Master",
+        description:
+          "Anthropic Claude orchestrates session flow, generates encounters, and arbitrates rules — bound to the active ruleset's grammar so it stays in-system instead of hallucinating mechanics.",
+      },
+      {
+        number: "02",
+        title: "Ruleset Authoring",
+        description:
+          "Publisher dashboard for shipping rulesets — character sheets, moves, tables, narrative tone. Same authoring layer that powers Zairoo also opens to third-party publishers.",
+      },
+      {
+        number: "03",
+        title: "Tenant-Isolated Sessions",
+        description:
+          "Each session runs in a tenant-isolated context with its own ruleset, party state, and AI memory. Built on the same multi-tenant primitives as Chicknz — every query scoped, every AI call sandboxed.",
+      },
+    ],
+    architecture: {
+      summary:
+        "Three layers: an extractable rules engine SDK (the `cantrip-sdk` package — pure functions, no React), a tenant-isolated session runtime (Next.js App Router with oRPC procedures scoped by `tenantId`), and an AI orchestrator that's bound to the active ruleset's grammar via structured tool definitions (Vercel AI SDK + Anthropic). The same SDK powers both publisher authoring (validates rulesets at write time) and the session runtime (executes them at play time) — no schema drift between authoring and play.",
+    },
+    whatILearned: [
+      "AI agents stay in-character only when their tools are typed. Free-form prompting drifts; a strict tool surface bound to the ruleset's grammar keeps the DM from inventing mechanics that don't exist.",
+      "An SDK shipped alongside the platform is worth the dual-target tax. Authoring + runtime sharing the same engine means a ruleset that validates is one that runs.",
+      "Reuse multi-tenant primitives when the domain is different — same `tenantId` query scoping pattern as Chicknz, completely different product.",
+    ],
+    nextProject: { slug: "zairoo", title: "Zairoo" },
+  },
+  {
+    slug: "zairoo",
+    number: "04",
+    title: "Zairoo",
+    shortDescription:
+      "Original Afrocentric TTRPG system. Discord bot + flagship ruleset on Cantrip.",
+    category: "Game Design / Bot Infrastructure",
+    overview:
+      "Zairoo is an original Afrocentric tabletop RPG system that doubles as the flagship ruleset on Cantrip. Two surfaces: a Discord bot (Hono API + discord.js, deployed on Railway) for play-by-message sessions, and a published Cantrip ruleset for full AI-DM-driven play.\n\nThe game system uses a five-stat spread (Grit / Vision / Soul / Vibe / Flow) and a Fate Path progression — designed first as a play-tested system, then implemented as a card-renderer package that produces the printable + digital character cards.",
+    challenge:
+      "Most original TTRPG systems are PDFs. Zairoo had to ship as software from day one — a Discord bot for low-friction sessions, a card-renderer for character art, and a Cantrip ruleset for AI-mediated play. Each surface had to honor the same canonical rules layer without duplicating logic.",
+    role: "Game Designer & Engineer",
+    timeline: "Aug 2025 — Ongoing",
+    client: "Personal Product",
+    tech: ["Hono", "oRPC", "discord.js", "Node.js", "Railway"],
+    accent: "#a899d1",
+    heroImage: "/screenshots/zairoo-hero.png",
+    images: ["/screenshots/zairoo-card.png"],
+    features: [
+      {
+        number: "01",
+        title: "Discord Bot",
+        description:
+          "Hono + oRPC API and discord.js bot deployed on Railway. Players run sessions in any Discord server; the bot handles character creation, dice, and session state persistence.",
+      },
+      {
+        number: "02",
+        title: "Card Renderer",
+        description:
+          "Standalone package that renders Zairoo character cards (stats, fate path, starting move) as PNGs for digital sharing or printing — single source of truth for character visuals across surfaces.",
+      },
+      {
+        number: "03",
+        title: "Cantrip Integration",
+        description:
+          "Same canonical rules layer published as a Cantrip ruleset, unlocking AI-DM-driven play in the browser. The Discord bot and Cantrip both read from the same engine.",
+      },
+    ],
+    architecture: {
+      summary:
+        "One canonical rules layer (`packages/rules`) feeds three surfaces: the Discord bot (Hono + oRPC API + discord.js), the card-renderer package (HTML→PNG via Playwright for printable / shareable cards), and a Cantrip ruleset registration. Any rules change ships to all three with a single deploy. The bot is on Railway because that's where it runs cheapest as a long-lived process; web/card surfaces deploy on Vercel.",
+    },
+    whatILearned: [
+      "Game design is software design. Forcing the rules into a typed package early kept the Discord and Cantrip surfaces honest — every house-rule edge case became a type problem before it was a player problem.",
+      "Multi-surface from a single source costs nothing if the source is the rules. Costs everything if the source is a UI.",
+      "Discord's bot UX has hard ceilings. Some interactions (card galleries, fate-path tracking) only land on the web — accept the surface tradeoffs instead of fighting them.",
+    ],
+    nextProject: { slug: "lhbk-web", title: "LHBK Web" },
+  },
+  {
+    slug: "lhbk-web",
+    number: "05",
+    title: "LHBK Web",
+    shortDescription:
+      "Operations platform for Brooklyn Haitian non-profit — payroll, BID property CRM, form builder.",
+    category: "Non-Profit / Operations",
+    overview:
+      "Little Haiti BK is a Brooklyn-based non-profit preserving Haitian culture and supporting small businesses through a Business Improvement District. What started as a community website grew into the organization's operating platform — staff timesheets with Paychex payroll integration, a form builder for community programs, file management, and a Mapbox-driven CRM for the BID's commercial property roster.\n\nNext.js 15 App Router, Better Auth for staff + community sign-in, Prisma + PostgreSQL, with Mapbox for property mapping and Paychex API integration for payroll.",
+    challenge:
+      "LHBK runs on tight non-profit margins — they couldn't afford a five-tool stack (HRIS + CRM + forms + maps + CMS). The goal was to consolidate operations into a single platform the team could maintain themselves, while keeping the public-facing community pages fast and accessible.",
+    role: "Software Engineer",
+    timeline: "2024 — Ongoing",
+    client: "Little Haiti BK",
+    tech: ["Next.js", "TypeScript", "Prisma", "Better Auth", "Mapbox", "Paychex API"],
+    accent: "#b85450",
+    heroImage: "/screenshots/lhbk-hero.png",
+    liveUrl: "https://lhbk.org",
+    features: [
+      {
+        number: "01",
+        title: "BID Property CRM",
+        description:
+          "Mapbox-driven map of Business Improvement District commercial properties — staff can browse, filter by status, and update property records inline. Replaces a spreadsheet-and-PDF workflow.",
+      },
+      {
+        number: "02",
+        title: "Timesheets + Paychex",
+        description:
+          "Staff timesheet capture wired into Paychex's payroll API — submitted hours flow straight to payroll without re-keying. Cut administrative overhead for the small ops team.",
+      },
+      {
+        number: "03",
+        title: "Form Builder + Community Hub",
+        description:
+          "Schema-driven form builder for community programs (event signups, BID applications, surveys) that staff can configure without developer involvement. Wraps the public-facing community pages.",
+      },
+    ],
+    architecture: {
+      summary:
+        "Single Next.js App Router platform replacing what would otherwise be five SaaS subscriptions. Better Auth handles staff sign-in (with role-based gates between staff and community-facing surfaces). Prisma schema unifies properties (BID), people (staff + members), forms (schema-driven), and time entries. Paychex's API integration runs on a server action that pre-validates timesheets against budget rules before submission, so payroll exceptions surface before anyone files them.",
+    },
+    whatILearned: [
+      "Non-profit ops is a different optimization target. The win wasn't building the slickest BID CRM — it was consolidating five tools into one the team can maintain themselves.",
+      "Paychex's API is a 'submit and hope' integration. Building a validation layer in the platform before submission caught more errors than Paychex's own webhook responses.",
+      "Schema-driven form builders save dev hours but cost UX hours. Worth it for an ops team; not worth it for a public-facing product.",
+    ],
+    nextProject: {
+      slug: "high-tide-capital",
+      title: "High Tide Capital",
+    },
   },
   {
     slug: "high-tide-capital",
-    number: "02",
+    number: "06",
     title: "High Tide Capital",
     shortDescription:
       "Modern underwriting platform with borrower validation and DocuSign e-signature flow.",
@@ -84,8 +311,13 @@ export const projects: Project[] = [
     timeline: "2024",
     client: "HiTide Capital",
     tech: ["Next.js", "TypeScript", "PostgreSQL", "Prisma", "DocuSign"],
+    accent: "#6b9bb5",
     heroImage: "/screenshots/hitide-hero.png",
-    images: ["/screenshots/hitide-flow.png", "/screenshots/hitide-products.png"],
+    images: [
+      "/screenshots/hitide-flow.png",
+      "/screenshots/hitide-products.png",
+      "/screenshots/hitide-portal.png",
+    ],
     liveUrl: "https://hitidecapital.com",
     features: [
       {
@@ -107,54 +339,20 @@ export const projects: Project[] = [
           "PostgreSQL schema designed to track the full loan lifecycle — applications, underwriting decisions, and funding status with Prisma ORM.",
       },
     ],
-    nextProject: { slug: "lhbk-web", title: "LHBK Web" },
-  },
-  {
-    slug: "lhbk-web",
-    number: "03",
-    title: "LHBK Web",
-    shortDescription:
-      "Community website for Brooklyn-based non-profit preserving Haitian culture.",
-    category: "Non-Profit / Community",
-    overview:
-      "Little Haiti BK is a Brooklyn-based non-profit dedicated to preserving Haitian culture and empowering the local community. I built their web presence — a Next.js site with community event listings, organizational information, and local resource mapping.\n\nThe site serves as the digital front door for the organization, connecting community members with programs, events, and resources across Brooklyn.",
-    challenge:
-      "LHBK needed a modern, maintainable website that the team could keep updated without developer involvement. The site had to be fast, accessible, and reflect the organization's cultural identity while being practical for community members looking for events and resources.",
-    role: "Software Engineer",
-    timeline: "2024",
-    client: "Little Haiti BK",
-    tech: ["Next.js", "TypeScript", "Tailwind CSS", "Vercel"],
-    heroImage: "/screenshots/lhbk-hero.png",
-    images: ["/screenshots/lhbk-hero.png"],
-    liveUrl: "https://lhbk.org",
-    features: [
-      {
-        number: "01",
-        title: "Community Hub",
-        description:
-          "Central landing page showcasing LHBK's mission, programs, and upcoming events — designed to connect community members with resources.",
-      },
-      {
-        number: "02",
-        title: "Event Listings",
-        description:
-          "Dynamic event system for community gatherings, cultural celebrations, and organizational programs with location and scheduling details.",
-      },
-      {
-        number: "03",
-        title: "Resource Mapping",
-        description:
-          "Local resource directory helping community members find services, programs, and points of interest across Brooklyn's Haitian community.",
-      },
-    ],
-    nextProject: {
-      slug: "good-call-technologies",
-      title: "Good Call Technologies",
+    architecture: {
+      summary:
+        "Borrower-facing funnel (intake → identity → eligibility → contract) is a Next.js multi-step form with state persisted in Postgres at each step (so a borrower can resume a session). DocuSign integration runs through their webhook flow — the platform issues envelopes, listens for status changes, and updates loan state via a state machine that mirrors the underwriting team's actual process. Underwriter dashboards read from the same Prisma schema; no reporting database, no ETL.",
     },
+    whatILearned: [
+      "DocuSign's webhook reliability assumes you're paying attention. Idempotent state transitions + a reconciliation cron caught the misses their docs glossed over.",
+      "Multi-step forms are stateful products, not one-off pages. Persisting after each step beats client-side state every time — borrowers refresh, lose connection, or come back days later.",
+      "Underwriter workflows are the product. The borrower sees a funnel; the team sees a pipeline. Both views had to be first-class, not one as an afterthought.",
+    ],
+    nextProject: { slug: "good-call-technologies", title: "Good Call Technologies" },
   },
   {
     slug: "good-call-technologies",
-    number: "04",
+    number: "07",
     title: "Good Call Technologies",
     shortDescription:
       "Twilio-based voice routing connecting people in custody with attorneys 24/7.",
@@ -167,9 +365,9 @@ export const projects: Project[] = [
     timeline: "2024",
     client: "Good Call Technology",
     tech: ["Next.js", "TypeScript", "Twilio", "Node.js", "PostgreSQL"],
+    accent: "#a87a4d",
     heroImage: "/screenshots/goodcall-hero.png",
-    images: ["/screenshots/goodcall-hero.png"],
-    liveUrl: "https://goodcall.nyc",
+    liveUrl: "https://goodcall.org",
     features: [
       {
         number: "01",
@@ -189,6 +387,15 @@ export const projects: Project[] = [
         description:
           "Queue management system that handles peak-hour call volume, routes to available attorneys, and tracks call history for reporting.",
       },
+    ],
+    architecture: {
+      summary:
+        "Twilio TwiML routes incoming precinct calls into a Postgres-backed queue. A Node.js queue manager assigns calls to available operators based on schedule + capacity; the operator dashboard subscribes via Server-Sent Events for live state and uses Twilio's JS SDK for hold/transfer/conference. Failover is layered — if no operator is available, calls escalate through a configured fallback chain (different operator pools, on-call attorneys, voicemail). Call history is logged for compliance reporting.",
+    },
+    whatILearned: [
+      "24/7 telephony is unforgiving. Every retry strategy, fallback path, and escalation rule has to be modeled explicitly — there's no 'we'll fix it Monday' for someone in custody.",
+      "Operator UX matters more than operator features. Hold, transfer, and conference are the same three buttons every dashboard has — what differentiates ours is how fast they respond under load.",
+      "Twilio's SDK abstracts the easy parts; the hard parts (failover, audit logging, custody-specific routing rules) live in your own queue manager. Don't fight Twilio for control of the call; do own the metadata around it.",
     ],
     nextProject: { slug: "forge-bi", title: "Forge BI" },
   },
