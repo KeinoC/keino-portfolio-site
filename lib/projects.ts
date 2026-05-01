@@ -197,60 +197,11 @@ export const projects: Project[] = [
       "An SDK shipped alongside the platform is worth the dual-target tax. Authoring + runtime sharing the same engine means a ruleset that validates is one that runs.",
       "Reuse multi-tenant primitives when the domain is different — same `tenantId` query scoping pattern as Chicknz, completely different product.",
     ],
-    nextProject: { slug: "zairoo", title: "Zairoo" },
-  },
-  {
-    slug: "zairoo",
-    number: "04",
-    title: "Zairoo",
-    shortDescription:
-      "Original Afrocentric TTRPG system. Discord bot + flagship ruleset on Cantrip.",
-    category: "Game Design / Bot Infrastructure",
-    overview:
-      "Zairoo is an original Afrocentric tabletop RPG system that doubles as the flagship ruleset on Cantrip. Two surfaces: a Discord bot (Hono API + discord.js, deployed on Railway) for play-by-message sessions, and a published Cantrip ruleset for full AI-DM-driven play.\n\nThe game system uses a five-stat spread (Grit / Vision / Soul / Vibe / Flow) and a Fate Path progression — designed first as a play-tested system, then implemented as a card-renderer package that produces the printable + digital character cards.",
-    challenge:
-      "Most original TTRPG systems are PDFs. Zairoo had to ship as software from day one — a Discord bot for low-friction sessions, a card-renderer for character art, and a Cantrip ruleset for AI-mediated play. Each surface had to honor the same canonical rules layer without duplicating logic.",
-    role: "Game Designer & Engineer",
-    timeline: "Aug 2025 — Ongoing",
-    client: "Personal Product",
-    tech: ["Hono", "oRPC", "discord.js", "Node.js", "Railway"],
-    accent: "#a899d1",
-    heroImage: "/screenshots/zairoo-hero.png",
-    images: ["/screenshots/zairoo-card.png"],
-    features: [
-      {
-        number: "01",
-        title: "Discord Bot",
-        description:
-          "Hono + oRPC API and discord.js bot deployed on Railway. Players run sessions in any Discord server; the bot handles character creation, dice, and session state persistence.",
-      },
-      {
-        number: "02",
-        title: "Card Renderer",
-        description:
-          "Standalone package that renders Zairoo character cards (stats, fate path, starting move) as PNGs for digital sharing or printing — single source of truth for character visuals across surfaces.",
-      },
-      {
-        number: "03",
-        title: "Cantrip Integration",
-        description:
-          "Same canonical rules layer published as a Cantrip ruleset, unlocking AI-DM-driven play in the browser. The Discord bot and Cantrip both read from the same engine.",
-      },
-    ],
-    architecture: {
-      summary:
-        "One canonical rules layer (`packages/rules`) feeds three surfaces: the Discord bot (Hono + oRPC API + discord.js), the card-renderer package (HTML→PNG via Playwright for printable / shareable cards), and a Cantrip ruleset registration. Any rules change ships to all three with a single deploy. The bot is on Railway because that's where it runs cheapest as a long-lived process; web/card surfaces deploy on Vercel.",
-    },
-    whatILearned: [
-      "Game design is software design. Forcing the rules into a typed package early kept the Discord and Cantrip surfaces honest — every house-rule edge case became a type problem before it was a player problem.",
-      "Multi-surface from a single source costs nothing if the source is the rules. Costs everything if the source is a UI.",
-      "Discord's bot UX has hard ceilings. Some interactions (card galleries, fate-path tracking) only land on the web — accept the surface tradeoffs instead of fighting them.",
-    ],
     nextProject: { slug: "lhbk-web", title: "LHBK Web" },
   },
   {
     slug: "lhbk-web",
-    number: "05",
+    number: "04",
     title: "LHBK Web",
     shortDescription:
       "Operations platform for Brooklyn Haitian non-profit — payroll, BID property CRM, form builder.",
@@ -296,9 +247,58 @@ export const projects: Project[] = [
       "Schema-driven form builders save dev hours but cost UX hours. Worth it for an ops team; not worth it for a public-facing product.",
     ],
     nextProject: {
-      slug: "high-tide-capital",
-      title: "High Tide Capital",
+      slug: "good-call-technologies",
+      title: "Good Call Technologies",
     },
+  },
+  {
+    slug: "good-call-technologies",
+    number: "05",
+    title: "Good Call Technologies",
+    shortDescription:
+      "Twilio-based voice routing connecting people in custody with attorneys 24/7.",
+    category: "Legal Tech / Telecom",
+    overview:
+      "Good Call Technologies connects people in police custody with attorneys. I built the Twilio-based voice routing system that powers 24/7 attorney connections from precinct phones — call flow logic, queue management, and automatic routing to available operators.\n\nAlongside the phone system, I developed the operator dashboard where staff manage scheduling, handle live calls (hold, transfer, conferencing), and monitor real-time notifications.",
+    challenge:
+      "People detained in precincts need immediate access to legal counsel, but connecting them to attorneys around the clock is a logistical challenge. The system needed to be reliable, handle call queuing during peak hours, and give operators full control over active calls.",
+    role: "Software Engineer",
+    timeline: "2024",
+    client: "Good Call Technology",
+    tech: ["Next.js", "TypeScript", "Twilio", "Node.js", "PostgreSQL"],
+    accent: "#a87a4d",
+    heroImage: "/screenshots/goodcall-hero.png",
+    liveUrl: "https://goodcall.org",
+    features: [
+      {
+        number: "01",
+        title: "Voice Routing",
+        description:
+          "Twilio-powered call flow system with queue management, enabling 24/7 attorney connections from precinct phones with automatic routing to available operators.",
+      },
+      {
+        number: "02",
+        title: "Operator Dashboard",
+        description:
+          "Real-time dashboard with scheduling, admin settings, notifications, and full call controls — hold, transfer, and conferencing.",
+      },
+      {
+        number: "03",
+        title: "Call Management",
+        description:
+          "Queue management system that handles peak-hour call volume, routes to available attorneys, and tracks call history for reporting.",
+      },
+    ],
+    architecture: {
+      summary:
+        "Twilio TwiML routes incoming precinct calls into a Postgres-backed queue. A Node.js queue manager assigns calls to available operators based on schedule + capacity; the operator dashboard subscribes via Server-Sent Events for live state and uses Twilio's JS SDK for hold/transfer/conference. Failover is layered — if no operator is available, calls escalate through a configured fallback chain (different operator pools, on-call attorneys, voicemail). Call history is logged for compliance reporting.",
+    },
+    whatILearned: [
+      "24/7 telephony is unforgiving. Every retry strategy, fallback path, and escalation rule has to be modeled explicitly — there's no 'we'll fix it Monday' for someone in custody.",
+      "Operator UX matters more than operator features. Hold, transfer, and conference are the same three buttons every dashboard has — what differentiates ours is how fast they respond under load.",
+      "Twilio's SDK abstracts the easy parts; the hard parts (failover, audit logging, custody-specific routing rules) live in your own queue manager. Don't fight Twilio for control of the call; do own the metadata around it.",
+    ],
+    nextProject: { slug: "high-tide-capital", title: "High Tide Capital" },
   },
   {
     slug: "high-tide-capital",
@@ -352,54 +352,54 @@ export const projects: Project[] = [
       "Multi-step forms are stateful products, not one-off pages. Persisting after each step beats client-side state every time — borrowers refresh, lose connection, or come back days later.",
       "Underwriter workflows are the product. The borrower sees a funnel; the team sees a pipeline. Both views had to be first-class, not one as an afterthought.",
     ],
-    nextProject: { slug: "good-call-technologies", title: "Good Call Technologies" },
+    nextProject: { slug: "zairoo", title: "Zairoo" },
   },
   {
-    slug: "good-call-technologies",
+    slug: "zairoo",
     number: "07",
-    title: "Good Call Technologies",
+    title: "Zairoo",
     shortDescription:
-      "Twilio-based voice routing connecting people in custody with attorneys 24/7.",
-    category: "Legal Tech / Telecom",
+      "Original Afrocentric TTRPG system. Discord bot + flagship ruleset on Cantrip.",
+    category: "Game Design / Bot Infrastructure",
     overview:
-      "Good Call Technologies connects people in police custody with attorneys. I built the Twilio-based voice routing system that powers 24/7 attorney connections from precinct phones — call flow logic, queue management, and automatic routing to available operators.\n\nAlongside the phone system, I developed the operator dashboard where staff manage scheduling, handle live calls (hold, transfer, conferencing), and monitor real-time notifications.",
+      "Zairoo is an original Afrocentric tabletop RPG system that doubles as the flagship ruleset on Cantrip. Two surfaces: a Discord bot (Hono API + discord.js, deployed on Railway) for play-by-message sessions, and a published Cantrip ruleset for full AI-DM-driven play.\n\nThe game system uses a five-stat spread (Grit / Vision / Soul / Vibe / Flow) and a Fate Path progression — designed first as a play-tested system, then implemented as a card-renderer package that produces the printable + digital character cards.",
     challenge:
-      "People detained in precincts need immediate access to legal counsel, but connecting them to attorneys around the clock is a logistical challenge. The system needed to be reliable, handle call queuing during peak hours, and give operators full control over active calls.",
-    role: "Software Engineer",
-    timeline: "2024",
-    client: "Good Call Technology",
-    tech: ["Next.js", "TypeScript", "Twilio", "Node.js", "PostgreSQL"],
-    accent: "#a87a4d",
-    heroImage: "/screenshots/goodcall-hero.png",
-    liveUrl: "https://goodcall.org",
+      "Most original TTRPG systems are PDFs. Zairoo had to ship as software from day one — a Discord bot for low-friction sessions, a card-renderer for character art, and a Cantrip ruleset for AI-mediated play. Each surface had to honor the same canonical rules layer without duplicating logic.",
+    role: "Game Designer & Engineer",
+    timeline: "Aug 2025 — Ongoing",
+    client: "Personal Product",
+    tech: ["Hono", "oRPC", "discord.js", "Node.js", "Railway"],
+    accent: "#a899d1",
+    heroImage: "/screenshots/zairoo-hero.png",
+    images: ["/screenshots/zairoo-card.png"],
     features: [
       {
         number: "01",
-        title: "Voice Routing",
+        title: "Discord Bot",
         description:
-          "Twilio-powered call flow system with queue management, enabling 24/7 attorney connections from precinct phones with automatic routing to available operators.",
+          "Hono + oRPC API and discord.js bot deployed on Railway. Players run sessions in any Discord server; the bot handles character creation, dice, and session state persistence.",
       },
       {
         number: "02",
-        title: "Operator Dashboard",
+        title: "Card Renderer",
         description:
-          "Real-time dashboard with scheduling, admin settings, notifications, and full call controls — hold, transfer, and conferencing.",
+          "Standalone package that renders Zairoo character cards (stats, fate path, starting move) as PNGs for digital sharing or printing — single source of truth for character visuals across surfaces.",
       },
       {
         number: "03",
-        title: "Call Management",
+        title: "Cantrip Integration",
         description:
-          "Queue management system that handles peak-hour call volume, routes to available attorneys, and tracks call history for reporting.",
+          "Same canonical rules layer published as a Cantrip ruleset, unlocking AI-DM-driven play in the browser. The Discord bot and Cantrip both read from the same engine.",
       },
     ],
     architecture: {
       summary:
-        "Twilio TwiML routes incoming precinct calls into a Postgres-backed queue. A Node.js queue manager assigns calls to available operators based on schedule + capacity; the operator dashboard subscribes via Server-Sent Events for live state and uses Twilio's JS SDK for hold/transfer/conference. Failover is layered — if no operator is available, calls escalate through a configured fallback chain (different operator pools, on-call attorneys, voicemail). Call history is logged for compliance reporting.",
+        "One canonical rules layer (`packages/rules`) feeds three surfaces: the Discord bot (Hono + oRPC API + discord.js), the card-renderer package (HTML→PNG via Playwright for printable / shareable cards), and a Cantrip ruleset registration. Any rules change ships to all three with a single deploy. The bot is on Railway because that's where it runs cheapest as a long-lived process; web/card surfaces deploy on Vercel.",
     },
     whatILearned: [
-      "24/7 telephony is unforgiving. Every retry strategy, fallback path, and escalation rule has to be modeled explicitly — there's no 'we'll fix it Monday' for someone in custody.",
-      "Operator UX matters more than operator features. Hold, transfer, and conference are the same three buttons every dashboard has — what differentiates ours is how fast they respond under load.",
-      "Twilio's SDK abstracts the easy parts; the hard parts (failover, audit logging, custody-specific routing rules) live in your own queue manager. Don't fight Twilio for control of the call; do own the metadata around it.",
+      "Game design is software design. Forcing the rules into a typed package early kept the Discord and Cantrip surfaces honest — every house-rule edge case became a type problem before it was a player problem.",
+      "Multi-surface from a single source costs nothing if the source is the rules. Costs everything if the source is a UI.",
+      "Discord's bot UX has hard ceilings. Some interactions (card galleries, fate-path tracking) only land on the web — accept the surface tradeoffs instead of fighting them.",
     ],
     nextProject: { slug: "forge-bi", title: "Forge BI" },
   },
