@@ -1,7 +1,7 @@
 ---
 id: KEI-029
 title: Fix scripts/capture.ts --webp pipeline + add --dark flag
-status: in-progress
+status: done
 priority: tier3
 estimate: tiny
 blocked_by:
@@ -27,8 +27,10 @@ Two real bugs / gaps surfaced while doing KEI-027 + KEI-028:
 - [x] `--webp` produces a real WebP (file command reports `RIFF (little-endian) data, Web/P image`)
 - [x] `--dark` produces a dark-mode capture for sites that respect `prefers-color-scheme`
 - [x] `bunx tsc --noEmit` passes
-- [ ] Branch `KEI-029-capture-script-webp-dark-fix` created off main
-- [ ] Commit, push, PR opened
+- [x] Branch `KEI-029-capture-script-webp-dark-fix` created off main
+- [x] Commit, push, PR opened (PR #3)
+- [x] Independent code review — APPROVE
+- [x] Merged to main
 
 ## Notes
 
