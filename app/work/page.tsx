@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { projects } from "@/lib/projects";
-import { WorkCard } from "@/components/work-card";
+import { DossierRow } from "@/components/dossier-row";
 
 export const metadata: Metadata = {
   title: "Work — Keino Chichester",
@@ -67,11 +67,11 @@ export default function WorkIndex() {
         </div>
       </section>
 
-      {/* Grid */}
+      {/* Dossier list */}
       <section className="px-6 md:px-12 max-w-[1400px] mx-auto pb-32">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((p) => (
-            <WorkCard key={p.slug} project={p} />
+        <div className="flex flex-col gap-5">
+          {projects.map((p, i) => (
+            <DossierRow key={p.slug} project={p} priority={i === 0} />
           ))}
         </div>
       </section>

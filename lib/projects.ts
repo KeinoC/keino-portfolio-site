@@ -72,6 +72,18 @@ export const projects: Project[] = [
       summary:
         "Plaid pulls transaction data into a Prisma-modeled financial schema (accounts, transactions, derived metrics). The AI Chat layer is a Vercel AI SDK orchestration that translates natural-language questions into typed queries over that schema, then renders charts/tables inline. Goals are background-evaluated against the same data — no manual reconciliation step. Eight years of healthcare finance taught me which questions founders actually ask, so the schema and prompt scaffolding are tuned for variance analysis and runway over generic BI.",
     },
+    outcomes: [
+      {
+        metric: "1 schema, 3 surfaces",
+        description:
+          "Plaid bank sync, AI chat, and auto-tracked goals all share one Prisma data model. No reporting DB, no ETL.",
+      },
+      {
+        metric: "8 yrs domain DNA",
+        description:
+          "Tables named in analyst language (variance, runway, burn) so the AI reasons in the user's vocabulary, not generic BI.",
+      },
+    ],
     whatILearned: [
       "Domain knowledge changes the schema. A general-purpose finance schema would have made the AI's job harder — naming things the way analysts name them (variance, runway, burn) lets the model reason in the user's language.",
       "AI as an analyst replacement, not a chatbot. The interface prefers charts and tables over conversation; chat is the input, not the output.",
@@ -129,6 +141,18 @@ export const projects: Project[] = [
       summary:
         "One Next.js codebase, four UI tiers. CSS custom properties (`--tap-target`, `--icon-size`, `--text-density`) and CVA variants drive age-adaptive components — no per-age fork. Prisma schema is multi-tenant by `familyId`; every query is scoped at the data layer, never relying on client filtering. AI lives behind a service boundary (`packages/ai`) that takes structured intent (\"create chore\", \"summarize week\") rather than free chat — the AI is background intelligence, not a chatbot.",
     },
+    outcomes: [
+      {
+        metric: "4 UI tiers, 1 component library",
+        description:
+          "CSS custom properties + CVA variants drive little/kid/tween/teen tap targets, density, and reading level. No per-age fork.",
+      },
+      {
+        metric: "Multi-tenant at the query layer",
+        description:
+          "Every Prisma query and AI call scoped by familyId in extension code — a missed scope is a type error, not a security incident.",
+      },
+    ],
     whatILearned: [
       "Age-adaptive UI works as engineering, not just design. CSS tokens + CVA variants made it cheap to ship four tiers from one component library — the alternative (forking) would have killed velocity.",
       "Multi-tenancy at the query layer beats middleware checks. Scoping by `familyId` in Prisma extension code means a missed scope is a type error, not a security incident.",
@@ -192,6 +216,18 @@ export const projects: Project[] = [
       summary:
         "Three layers: an extractable rules engine SDK (the `cantrip-sdk` package — pure functions, no React), a tenant-isolated session runtime (Next.js App Router with oRPC procedures scoped by `tenantId`), and an AI orchestrator that's bound to the active ruleset's grammar via structured tool definitions (Vercel AI SDK + Anthropic). The same SDK powers both publisher authoring (validates rulesets at write time) and the session runtime (executes them at play time) — no schema drift between authoring and play.",
     },
+    outcomes: [
+      {
+        metric: "1 rules SDK, 2 surfaces",
+        description:
+          "cantrip-sdk validates rulesets at authoring time and executes them at play time. No schema drift between editor and runtime.",
+      },
+      {
+        metric: "AI bound to typed grammar",
+        description:
+          "DM tools defined per-ruleset via Vercel AI SDK structured tools, so the AI stays in-system instead of hallucinating mechanics.",
+      },
+    ],
     whatILearned: [
       "AI agents stay in-character only when their tools are typed. Free-form prompting drifts; a strict tool surface bound to the ruleset's grammar keeps the DM from inventing mechanics that don't exist.",
       "An SDK shipped alongside the platform is worth the dual-target tax. Authoring + runtime sharing the same engine means a ruleset that validates is one that runs.",
@@ -241,6 +277,18 @@ export const projects: Project[] = [
       summary:
         "Single Next.js App Router platform replacing what would otherwise be five SaaS subscriptions. Better Auth handles staff sign-in (with role-based gates between staff and community-facing surfaces). Prisma schema unifies properties (BID), people (staff + members), forms (schema-driven), and time entries. Paychex's API integration runs on a server action that pre-validates timesheets against budget rules before submission, so payroll exceptions surface before anyone files them.",
     },
+    outcomes: [
+      {
+        metric: "5 SaaS tools → 1 platform",
+        description:
+          "HRIS, CRM, forms, mapping, and CMS consolidated into one Next.js app a small ops team can maintain themselves.",
+      },
+      {
+        metric: "Paychex API live",
+        description:
+          "Submitted hours flow straight from staff timesheets into payroll, pre-validated against budget rules so exceptions surface before submission.",
+      },
+    ],
     whatILearned: [
       "Non-profit ops is a different optimization target. The win wasn't building the slickest BID CRM — it was consolidating five tools into one the team can maintain themselves.",
       "Paychex's API is a 'submit and hope' integration. Building a validation layer in the platform before submission caught more errors than Paychex's own webhook responses.",
@@ -293,6 +341,18 @@ export const projects: Project[] = [
       summary:
         "Twilio TwiML routes incoming precinct calls into a Postgres-backed queue. A Node.js queue manager assigns calls to available operators based on schedule + capacity; the operator dashboard subscribes via Server-Sent Events for live state and uses Twilio's JS SDK for hold/transfer/conference. Failover is layered — if no operator is available, calls escalate through a configured fallback chain (different operator pools, on-call attorneys, voicemail). Call history is logged for compliance reporting.",
     },
+    outcomes: [
+      {
+        metric: "24/7 attorney routing live",
+        description:
+          "Twilio TwiML + Postgres-backed queue + Node.js queue manager handle precinct call escalation from operator pools to on-call attorneys to voicemail.",
+      },
+      {
+        metric: "Live call controls in browser",
+        description:
+          "Operator dashboard subscribes via SSE for queue state and uses Twilio's JS SDK for hold, transfer, and conference. No native client required.",
+      },
+    ],
     whatILearned: [
       "24/7 telephony is unforgiving. Every retry strategy, fallback path, and escalation rule has to be modeled explicitly — there's no 'we'll fix it Monday' for someone in custody.",
       "Operator UX matters more than operator features. Hold, transfer, and conference are the same three buttons every dashboard has — what differentiates ours is how fast they respond under load.",
@@ -347,6 +407,18 @@ export const projects: Project[] = [
       summary:
         "Borrower-facing funnel (intake → identity → eligibility → contract) is a Next.js multi-step form with state persisted in Postgres at each step (so a borrower can resume a session). DocuSign integration runs through their webhook flow — the platform issues envelopes, listens for status changes, and updates loan state via a state machine that mirrors the underwriting team's actual process. Underwriter dashboards read from the same Prisma schema; no reporting database, no ETL.",
     },
+    outcomes: [
+      {
+        metric: "Email + spreadsheets → 1 platform",
+        description:
+          "Manual borrower-doc collection and offline contracts replaced with a multi-step intake funnel persisted in Postgres after each step.",
+      },
+      {
+        metric: "DocuSign live, reconciled",
+        description:
+          "Envelope flow runs on DocuSign's webhook with idempotent state transitions plus a reconciliation cron, catching the misses their docs glossed over.",
+      },
+    ],
     whatILearned: [
       "DocuSign's webhook reliability assumes you're paying attention. Idempotent state transitions + a reconciliation cron caught the misses their docs glossed over.",
       "Multi-step forms are stateful products, not one-off pages. Persisting after each step beats client-side state every time — borrowers refresh, lose connection, or come back days later.",
@@ -396,6 +468,18 @@ export const projects: Project[] = [
       summary:
         "One canonical rules layer (`packages/rules`) feeds three surfaces: the Discord bot (Hono + oRPC API + discord.js), the card-renderer package (HTML→PNG via Playwright for printable / shareable cards), and a Cantrip ruleset registration. Any rules change ships to all three with a single deploy. The bot is on Railway because that's where it runs cheapest as a long-lived process; web/card surfaces deploy on Vercel.",
     },
+    outcomes: [
+      {
+        metric: "1 rules engine, 3 surfaces",
+        description:
+          "Discord bot (Hono + discord.js on Railway), HTML→PNG card renderer, and Cantrip ruleset all read from packages/rules. One rules change ships everywhere.",
+      },
+      {
+        metric: "Game designed first, shipped as software day one",
+        description:
+          "Five-stat spread (Grit / Vision / Soul / Vibe / Flow) and Fate Path progression playtested before being implemented as a typed rules package.",
+      },
+    ],
     whatILearned: [
       "Game design is software design. Forcing the rules into a typed package early kept the Discord and Cantrip surfaces honest — every house-rule edge case became a type problem before it was a player problem.",
       "Multi-surface from a single source costs nothing if the source is the rules. Costs everything if the source is a UI.",
