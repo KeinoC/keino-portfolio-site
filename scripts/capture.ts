@@ -11,8 +11,9 @@
  * Outputs to public/screenshots/<out>.png. Pass --webp for WebP.
  */
 import { chromium, type Page } from "playwright";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import sharp from "sharp";
 
 type Args = {
   url: string;
@@ -91,16 +92,21 @@ async function main() {
   await hideDevOverlays(page);
   await page.waitForTimeout(args.wait);
 
+  // Playwright supports png + jpeg natively. WebP comes from sharp.
+  let buffer: Buffer;
   if (args.selector) {
     const el = page.locator(args.selector).first();
     await el.scrollIntoViewIfNeeded();
-    await el.screenshot({ path: outPath, type: ext === "webp" ? "png" : ext });
+    buffer = await el.screenshot({ type: "png" });
   } else {
-    await page.screenshot({
-      path: outPath,
-      fullPage: args.fullPage,
-      type: ext === "webp" ? "png" : ext,
-    });
+    buffer = await page.screenshot({ fullPage: args.fullPage, type: "png" });
+  }
+
+  if (ext === "webp") {
+    const webp = await sharp(buffer).webp({ quality: 82 }).toBuffer();
+    await writeFile(outPath, webp);
+  } else {
+    await writeFile(outPath, buffer);
   }
 
   await browser.close();
