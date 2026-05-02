@@ -1,7 +1,7 @@
 ---
 id: KEI-030
 title: /work as a two-column dossier list + outcomes backfill
-status: in-progress
+status: done
 priority: tier1
 estimate: medium
 blocked_by:
@@ -46,15 +46,17 @@ New `components/dossier-row.tsx`. Replace the `<WorkCard/>` grid in `app/work/pa
 ## Acceptance Criteria
 
 - [x] `KEI-030-work-dossier-list` branch off main
-- [ ] Outcomes copy drafted for all 7 projects, presented to Keino, approved
-- [ ] `lib/projects.ts` `outcomes` field populated for all 7
-- [ ] `components/dossier-row.tsx` shipped
-- [ ] `app/work/page.tsx` switched from `<WorkCard/>` grid to `<DossierRow/>` list
-- [ ] `/work` smoke-tested at 1440px and 430px (and 375px sanity)
-- [ ] No horizontal overflow at any tested width
-- [ ] `bun run lint` + `bunx tsc --noEmit` clean
-- [ ] Commit, push, PR opened
-- [ ] User reviews PR + signs off before merge
+- [x] Outcomes copy drafted for all 7 projects, presented to Keino, approved
+- [x] `lib/projects.ts` `outcomes` field populated for all 7
+- [x] `components/dossier-row.tsx` shipped
+- [x] `app/work/page.tsx` switched from `<WorkCard/>` grid to `<DossierRow/>` list
+- [x] `/work` smoke-tested at 1440px and 430px (and 375px sanity)
+- [x] No horizontal overflow at any tested width
+- [x] `bun run lint` + `bunx tsc --noEmit` clean
+- [x] Commit, push, PR opened (PR #4)
+- [x] Independent code review — APPROVE
+- [x] User signed off ("review all work and merge for portfolio")
+- [x] Merged to main
 
 ## Out of Scope
 
