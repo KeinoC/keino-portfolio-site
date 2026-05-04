@@ -1,7 +1,7 @@
 ---
 id: KEI-021
 title: Build <DemoPiP/> shell — drag, resize, dock states, iframe + video modes
-status: ready
+status: done
 priority: tier2
 estimate: large
 blocked_by: KEI-020

@@ -37,8 +37,8 @@ Prefix: `KEI-XXX`. One ticket per discrete improvement. Same pattern as `chicknz
 | KEI-018 | Cleanup unstaged working tree noise | tier3 | done |
 | KEI-019 | Forge BI cover images — capture better hero + supporting shots | tier2 | done |
 | KEI-020 | PiP demo prep & per-project decisions | tier2 | done |
-| KEI-021 | Build `<DemoPiP/>` shell — drag, resize, dock states, iframe + video modes | tier2 | ready |
-| KEI-022 | Wire `<DemoTrigger/>` into /work/[slug] case-study pages | tier2 | ready |
+| KEI-021 | Build `<DemoPiP/>` shell — drag, resize, dock states, iframe + video modes | tier2 | done |
+| KEI-022 | Wire `<DemoTrigger/>` into /work/[slug] case-study pages | tier2 | done |
 | KEI-023 | Ship iframe demos for owned projects (forge-bi, chicknz, cantrip, lhbk-web) | tier2 | blocked |
 | KEI-024 | Ship video demos for client projects (high-tide-capital, good-call-technologies) | tier2 | blocked |
 | KEI-025 | PiP mobile polish, a11y audit, analytics | tier2 | blocked |

@@ -6,6 +6,7 @@ import {
   DM_Sans,
 } from "next/font/google";
 import "./globals.css";
+import { DemoPiPMount } from "@/components/demo-pip-mount";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -72,6 +73,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${dmSans.variable} antialiased`}
       >
         {children}
+        <DemoPiPMount />
       </body>
     </html>
   );

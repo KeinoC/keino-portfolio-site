@@ -96,8 +96,8 @@ Quality Gates prove a feature renders. Dogfooding proves it *works*. For every n
 
 ## Response Preferences (MANDATORY)
 
-- **Options → use `AskUserQuestion`, not text.** When presenting choices, use the `AskUserQuestion` tool — not letter/number lists in a code block.
-- **One question per call.** Never batch multiple questions into a single `AskUserQuestion` call — it triggers an extra "Submit all answers" step the user finds annoying. Issue single-question calls across turns.
+- **Options → use `AskUserQuestion`, not text. (BLOCKING)** Any time you'd present choices, use the `AskUserQuestion` tool — never letter/number/checkbox lists in a code block. This is a hard guardrail; if the tool isn't loaded, `ToolSearch select:AskUserQuestion` first.
+- **Batched questions are fine** — 2-4 related questions in one `AskUserQuestion` call tab in the CLI without friction. Don't artificially split into one-per-turn.
 - **Multi-select = parallel execution.** When the user picks multiple options, dispatch them in parallel (one assistant turn, multiple tool calls).
 - **Proactive suggestions.** End a completed task with 1–3 concrete next-step suggestions. Don't suggest unasked-for refactors or scope expansion.
 
