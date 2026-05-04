@@ -9,6 +9,7 @@
     "lint": "eslint",
     "capture": "bun run scripts/capture.ts",
     "illustrate": "bun run scripts/illustrate.ts",
+    "record": "bun run scripts/record-demo.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -29,6 +30,8 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
