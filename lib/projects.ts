@@ -1,3 +1,22 @@
+export type ProjectDemo =
+  | {
+      kind: "iframe";
+      url: string;
+      minSize?: { w: number; h: number };
+      credentials?: { hint: string };
+    }
+  | {
+      kind: "video";
+      src: string;
+      poster: string;
+      // ISO date the recording was captured. Empty string until KEI-024 ships.
+      recordedAt: string;
+    }
+  | {
+      kind: "none";
+      reason?: string;
+    };
+
 export interface Project {
   slug: string;
   number: string;
@@ -25,6 +44,10 @@ export interface Project {
     code: string;
     caption?: string;
   };
+  // Picture-in-Picture demo on /work/[slug]. Iframe embeds owned products
+  // with a demo-account hint; video plays a recorded walkthrough for client
+  // products we don't host. `none` hides the trigger entirely.
+  demo?: ProjectDemo;
   nextProject?: { slug: string; title: string };
 }
 
@@ -89,6 +112,12 @@ export const projects: Project[] = [
       "AI as an analyst replacement, not a chatbot. The interface prefers charts and tables over conversation; chat is the input, not the output.",
       "Plaid's realtime story is rougher than the marketing implies. Webhook reconciliation + a backfill cron is more reliable than trusting any single signal.",
     ],
+    demo: {
+      kind: "iframe",
+      url: "https://forge.keino.dev/demo",
+      minSize: { w: 760, h: 520 },
+      credentials: { hint: "Demo signs you in automatically — no password needed." },
+    },
     nextProject: { slug: "chicknz", title: "Chicknz" },
   },
   {
@@ -158,6 +187,14 @@ export const projects: Project[] = [
       "Multi-tenancy at the query layer beats middleware checks. Scoping by `familyId` in Prisma extension code means a missed scope is a type error, not a security incident.",
       "AI-as-orchestrator vs AI-as-chatbot. Wiring Claude into chore rotation, scheduling, and weekly summaries makes the product feel intelligent without ever exposing a chat surface to a child.",
     ],
+    demo: {
+      kind: "iframe",
+      url: "https://chicknz.vercel.app/?demo=preview",
+      minSize: { w: 720, h: 480 },
+      credentials: {
+        hint: "Auto-loaded into a sandboxed demo family — your changes won't persist.",
+      },
+    },
     nextProject: { slug: "cantrip", title: "Cantrip" },
   },
   {
@@ -233,6 +270,14 @@ export const projects: Project[] = [
       "An SDK shipped alongside the platform is worth the dual-target tax. Authoring + runtime sharing the same engine means a ruleset that validates is one that runs.",
       "Reuse multi-tenant primitives when the domain is different — same `tenantId` query scoping pattern as Chicknz, completely different product.",
     ],
+    demo: {
+      kind: "iframe",
+      url: "https://cantrip.vercel.app/session/demo",
+      minSize: { w: 880, h: 560 },
+      credentials: {
+        hint: "Pre-rolled session with the Zairoo ruleset — drop in mid-game.",
+      },
+    },
     nextProject: { slug: "lhbk-web", title: "LHBK Web" },
   },
   {
@@ -294,6 +339,11 @@ export const projects: Project[] = [
       "Paychex's API is a 'submit and hope' integration. Building a validation layer in the platform before submission caught more errors than Paychex's own webhook responses.",
       "Schema-driven form builders save dev hours but cost UX hours. Worth it for an ops team; not worth it for a public-facing product.",
     ],
+    demo: {
+      kind: "iframe",
+      url: "https://lhbk.org/community",
+      minSize: { w: 720, h: 480 },
+    },
     nextProject: {
       slug: "good-call-technologies",
       title: "Good Call Technologies",
@@ -358,6 +408,12 @@ export const projects: Project[] = [
       "Operator UX matters more than operator features. Hold, transfer, and conference are the same three buttons every dashboard has — what differentiates ours is how fast they respond under load.",
       "Twilio's SDK abstracts the easy parts; the hard parts (failover, audit logging, custody-specific routing rules) live in your own queue manager. Don't fight Twilio for control of the call; do own the metadata around it.",
     ],
+    demo: {
+      kind: "video",
+      src: "/demos/goodcall-walkthrough.mp4",
+      poster: "/demos/goodcall-poster.jpg",
+      recordedAt: "",
+    },
     nextProject: { slug: "high-tide-capital", title: "High Tide Capital" },
   },
   {
@@ -424,6 +480,12 @@ export const projects: Project[] = [
       "Multi-step forms are stateful products, not one-off pages. Persisting after each step beats client-side state every time — borrowers refresh, lose connection, or come back days later.",
       "Underwriter workflows are the product. The borrower sees a funnel; the team sees a pipeline. Both views had to be first-class, not one as an afterthought.",
     ],
+    demo: {
+      kind: "video",
+      src: "/demos/hitide-walkthrough.mp4",
+      poster: "/demos/hitide-poster.jpg",
+      recordedAt: "",
+    },
     nextProject: { slug: "zairoo", title: "Zairoo" },
   },
   {
@@ -485,6 +547,11 @@ export const projects: Project[] = [
       "Multi-surface from a single source costs nothing if the source is the rules. Costs everything if the source is a UI.",
       "Discord's bot UX has hard ceilings. Some interactions (card galleries, fate-path tracking) only land on the web — accept the surface tradeoffs instead of fighting them.",
     ],
+    demo: {
+      kind: "none",
+      reason:
+        "Discord-only today. Revisit when the card-renderer ships a public web surface.",
+    },
     nextProject: { slug: "forge-bi", title: "Forge BI" },
   },
 ];

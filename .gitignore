@@ -46,3 +46,6 @@ audit-*.png
 verify-*.png
 live-*.png
 .auth/
+
+# claude code scheduler runtime
+.claude/scheduled_tasks.lock
