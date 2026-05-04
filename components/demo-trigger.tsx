@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { ExternalLink, Play, X } from "lucide-react";
 import type { Project } from "@/lib/projects";
 import { useDemoPip, type ActiveDemo } from "@/lib/demo-pip-store";
+import { trackDemo, trackDemoTime } from "@/lib/track";
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -43,9 +44,14 @@ export function DemoTrigger({ project }: { project: Project }) {
 
   const isVideo = demo.kind === "video";
   const label = isVideo ? "Watch demo" : "Try it live";
+  const ariaLabel = isVideo
+    ? `Watch a recorded ${project.title} demo`
+    : `Try ${project.title} live in a floating window`;
 
   const onClick = () => {
     if (isMobile) {
+      // Mobile fires its own demo_open; the desktop path fires from the store.
+      trackDemo("demo_open", { project: project.slug, kind: demo.kind });
       setMobileModal(true);
       return;
     }
@@ -63,11 +69,13 @@ export function DemoTrigger({ project }: { project: Project }) {
       <button
         type="button"
         onClick={onClick}
+        aria-label={ariaLabel}
         data-demo-kind={demo.kind}
         data-demo-slug={project.slug}
-        className="font-body text-[14px] px-6 py-3 rounded-full border border-[#222] text-[#ccc] hover:border-[#555] hover:text-white transition-colors text-center inline-flex items-center justify-center gap-2"
+        // min-h-11 (44px) keeps the WCAG-recommended touch target.
+        className="font-body text-[14px] min-h-11 px-6 py-3 rounded-full border border-[#222] text-[#ccc] hover:border-[#555] hover:text-white transition-colors text-center inline-flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#090909]"
       >
-        {isVideo ? <Play size={14} /> : null}
+        {isVideo ? <Play size={14} aria-hidden /> : null}
         {label}
       </button>
       {mobileModal ? (
@@ -87,8 +95,12 @@ function MobileModal({
   project: Project;
   onClose: () => void;
 }) {
-  // Lock body scroll while the modal is open.
+  const demo = project.demo;
+  // Mobile path doesn't route through the Zustand store, so demo_close +
+  // demo_time fire from this effect's cleanup on unmount instead.
   useEffect(() => {
+    if (!demo || demo.kind === "none") return;
+    const openedAt = Date.now();
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
@@ -98,13 +110,22 @@ function MobileModal({
     return () => {
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", onKey);
+      // demo_open fired from the trigger; close + time fire here on unmount.
+      trackDemo("demo_close", { project: project.slug, kind: demo.kind });
+      trackDemoTime({
+        project: project.slug,
+        kind: demo.kind,
+        seconds: (Date.now() - openedAt) / 1000,
+      });
     };
-  }, [onClose]);
+  }, [onClose, demo, project.slug]);
 
-  if (!project.demo || project.demo.kind === "none") return null;
+  if (!demo || demo.kind === "none") return null;
 
   const externalUrl =
-    project.demo.kind === "iframe" ? project.demo.url : project.liveUrl ?? null;
+    demo.kind === "iframe" ? demo.url : project.liveUrl ?? null;
+  const onPopOut = () =>
+    trackDemo("demo_pop_out", { project: project.slug, kind: demo.kind });
 
   return (
     <div
@@ -119,38 +140,39 @@ function MobileModal({
           <h2 className="font-headline text-[13px] tracking-wide truncate">
             {project.title}
           </h2>
-          {project.demo.kind === "video" && project.demo.recordedAt ? (
+          {demo.kind === "video" && demo.recordedAt ? (
             <span className="text-[11px] text-zinc-500 hidden xs:inline">
-              recorded {project.demo.recordedAt}
+              recorded {demo.recordedAt}
             </span>
           ) : null}
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1">
           {externalUrl ? (
             <a
               href={externalUrl}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Open in new tab"
-              className="size-9 inline-flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-white/5 transition-colors"
+              onClick={onPopOut}
+              className="size-11 inline-flex items-center justify-center rounded-md text-zinc-300 hover:text-zinc-100 hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300/60"
             >
-              <ExternalLink className="size-4" />
+              <ExternalLink className="size-5" />
             </a>
           ) : null}
           <button
             type="button"
             aria-label="Close demo"
             onClick={onClose}
-            className="size-9 inline-flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-white/5 transition-colors"
+            className="size-11 inline-flex items-center justify-center rounded-md text-zinc-300 hover:text-zinc-100 hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300/60"
           >
-            <X className="size-4" />
+            <X className="size-5" />
           </button>
         </div>
       </div>
       <div className="flex-1 min-h-0">
-        {project.demo.kind === "iframe" ? (
+        {demo.kind === "iframe" ? (
           <iframe
-            src={project.demo.url}
+            src={demo.url}
             title={`${project.title} demo`}
             loading="lazy"
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
@@ -158,8 +180,8 @@ function MobileModal({
           />
         ) : (
           <video
-            src={project.demo.src}
-            poster={project.demo.poster}
+            src={demo.src}
+            poster={demo.poster}
             controls
             playsInline
             autoPlay

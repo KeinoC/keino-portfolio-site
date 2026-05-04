@@ -6,6 +6,7 @@ import {
   DM_Sans,
 } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { DemoPiPMount } from "@/components/demo-pip-mount";
 
 const geistSans = Geist({
@@ -74,6 +75,7 @@ export default function RootLayout({
       >
         {children}
         <DemoPiPMount />
+        <Analytics />
       </body>
     </html>
   );

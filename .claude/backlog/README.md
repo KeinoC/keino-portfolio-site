@@ -41,7 +41,7 @@ Prefix: `KEI-XXX`. One ticket per discrete improvement. Same pattern as `chicknz
 | KEI-022 | Wire `<DemoTrigger/>` into /work/[slug] case-study pages | tier2 | done |
 | KEI-023 | Ship iframe demos for owned projects (forge-bi, chicknz, cantrip, lhbk-web) | tier2 | blocked |
 | KEI-024 | Ship video demos for client projects (high-tide-capital, good-call-technologies) | tier2 | blocked |
-| KEI-025 | PiP mobile polish, a11y audit, analytics | tier2 | blocked |
+| KEI-025 | PiP mobile polish, a11y audit, analytics | tier2 | done |
 
 ## Status (2026-05-01)
 
@@ -53,3 +53,16 @@ All 18 original tickets shipped in a single chain. The portfolio is visit-ready:
 - Real numeric outcomes on each project (declined to fabricate; add as available)
 - Shiki SSR for code snippets (deferred — security hook blocked the inline-HTML pattern; plain `<pre>` ships)
 - Shared-element transitions between Selected Work cards and case-study pages (skipped — Framer `layoutId` across App Router routes is fragile)
+
+## PiP analytics events (KEI-025)
+
+Demo-system events fire to Vercel Analytics from `lib/track.ts`. All carry `{ project: <slug>, kind: "iframe" | "video" }`.
+
+| Event | When |
+|---|---|
+| `demo_open` | Trigger clicked (desktop + mobile paths) |
+| `demo_minimize` | Floating → minimized |
+| `demo_expand` | Floating → expanded |
+| `demo_pop_out` | "Open in new tab" clicked in PiP/modal chrome |
+| `demo_close` | Closed via X, ESC, or trigger toggle |
+| `demo_time` | Span: integer seconds open before close |

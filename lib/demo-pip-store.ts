@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import type { ProjectDemo } from "./projects";
+import { trackDemo, trackDemoTime } from "./track";
 
 export type DemoDockState = "closed" | "floating" | "minimized" | "expanded";
 
@@ -49,6 +50,9 @@ type DemoPipState = {
   state: DemoDockState;
   position: DemoPosition | null; // null = unset; consumer picks a default anchor
   size: DemoSize;
+  // Wall-clock ms when the current demo opened — used to fire `demo_time`
+  // when it closes. Reset to null on close.
+  openedAt: number | null;
   open: (demo: ActiveDemo) => void;
   close: () => void;
   setState: (state: DemoDockState) => void;
@@ -57,28 +61,57 @@ type DemoPipState = {
   hydrate: () => void;
 };
 
+function emitClose(current: ActiveDemo | null, openedAt: number | null) {
+  if (!current) return;
+  trackDemo("demo_close", { project: current.id, kind: current.demo.kind });
+  if (openedAt != null) {
+    trackDemoTime({
+      project: current.id,
+      kind: current.demo.kind,
+      seconds: (Date.now() - openedAt) / 1000,
+    });
+  }
+}
+
 export const useDemoPip = create<DemoPipState>((set, get) => ({
   current: null,
   state: "closed",
   position: null,
   size: FLOATING_DEFAULT_SIZE,
+  openedAt: null,
 
   open: (demo) => {
     set({
       current: demo,
       state: "floating",
+      openedAt: Date.now(),
     });
+    trackDemo("demo_open", { project: demo.id, kind: demo.demo.kind });
   },
 
   close: () => {
-    set({ current: null, state: "closed" });
+    const { current, openedAt } = get();
+    emitClose(current, openedAt);
+    set({ current: null, state: "closed", openedAt: null });
   },
 
   setState: (state) => {
-    const current = get().current;
+    const { current, openedAt, state: prev } = get();
     if (state !== "closed" && !current) return;
+    if (state === prev) return;
     set({ state });
-    if (state === "closed") set({ current: null });
+    if (state === "closed") {
+      emitClose(current, openedAt);
+      set({ current: null, openedAt: null });
+      return;
+    }
+    if (current) {
+      if (state === "minimized") {
+        trackDemo("demo_minimize", { project: current.id, kind: current.demo.kind });
+      } else if (state === "expanded") {
+        trackDemo("demo_expand", { project: current.id, kind: current.demo.kind });
+      }
+    }
   },
 
   setPosition: (position) => {

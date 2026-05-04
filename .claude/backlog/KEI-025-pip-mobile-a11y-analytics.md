@@ -1,7 +1,7 @@
 ---
 id: KEI-025
 title: PiP mobile polish, a11y audit, analytics
-status: blocked
+status: done
 priority: tier2
 estimate: small
 blocked_by: KEI-021, KEI-022, KEI-023, KEI-024

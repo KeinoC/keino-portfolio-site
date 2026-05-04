@@ -43,6 +43,7 @@ import {
   useDemoPip,
   type DemoSize,
 } from "@/lib/demo-pip-store";
+import { trackDemo } from "@/lib/track";
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -154,6 +155,25 @@ function DemoPiPInner({
   const titleId = `${dialogId}-title`;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  // Capture the trigger that opened the PiP so we can restore focus on close.
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    return () => {
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, []);
+
+  // Pull initial focus to the chrome (not the iframe content) on first mount.
+  // Run once on mount; later state changes don't yank focus around.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const firstButton = container.querySelector<HTMLElement>(
+      'button:not([aria-label="Resize"]):not([disabled])',
+    );
+    firstButton?.focus();
+  }, []);
 
   // Compute the requested minimum (project-supplied or global default).
   const minSize = useMemo<DemoSize>(() => {
@@ -328,6 +348,16 @@ function DemoPiPInner({
   const dragX = position?.x ?? rendered.x;
   const dragY = position?.y ?? rendered.y;
 
+  // Live announcement of dock-state changes for screen readers.
+  const announcement =
+    state === "minimized"
+      ? `${current.title} demo minimized`
+      : state === "expanded"
+        ? `${current.title} demo expanded`
+        : state === "floating"
+          ? `${current.title} demo open in floating window`
+          : "";
+
   return (
     <motion.div
       ref={containerRef}
@@ -360,6 +390,9 @@ function DemoPiPInner({
       }}
       className="rounded-xl bg-[#0c0c11] text-zinc-100 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6),0_2px_8px_rgba(0,0,0,0.4)] ring-1 ring-white/10 overflow-hidden flex flex-col"
     >
+      <span aria-live="polite" className="sr-only">
+        {announcement}
+      </span>
       {isMinimized ? (
         <MinimizedBar
           title={current.title}
@@ -378,6 +411,12 @@ function DemoPiPInner({
               current.demo.kind === "iframe"
                 ? current.demo.url
                 : current.liveUrl ?? null
+            }
+            onPopOut={() =>
+              trackDemo("demo_pop_out", {
+                project: current.id,
+                kind: current.demo.kind,
+              })
             }
             onMinimize={() => setState("minimized")}
             onToggleExpand={() =>
@@ -416,6 +455,7 @@ function Header({
   recordedAt,
   externalUrl,
   isExpanded,
+  onPopOut,
   onMinimize,
   onToggleExpand,
   onClose,
@@ -425,6 +465,7 @@ function Header({
   recordedAt: string;
   externalUrl: string | null;
   isExpanded: boolean;
+  onPopOut: () => void;
   onMinimize: () => void;
   onToggleExpand: () => void;
   onClose: () => void;
@@ -450,6 +491,7 @@ function Header({
           <IconButton
             label="Open in new tab"
             href={externalUrl}
+            onClick={onPopOut}
             icon={<ExternalLink className="size-3.5" />}
           />
         ) : null}
@@ -499,6 +541,7 @@ function IconButton({
         target="_blank"
         rel="noopener noreferrer"
         aria-label={label}
+        onClick={onClick}
         title={label}
         className={className}
         onPointerDown={(e) => e.stopPropagation()}
