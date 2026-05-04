@@ -29,7 +29,11 @@ export type RecordStep =
   | { kind: "eval"; fn: (page: Page) => Promise<void> };
 
 export type RecordTarget = {
+  // CLI-facing id used by `bun run record -- <id>`. Keep short.
   id: string;
+  // Output filename basename — produces `<outputName>.mp4` and
+  // `<outputName>-poster.jpg`. Defaults to `id` when omitted.
+  outputName?: string;
   // True target URL the recording starts at. The runner navigates here first
   // before running scenes (so scenes can omit a leading `goto`).
   startUrl: string;
@@ -47,8 +51,10 @@ export type RecordTarget = {
 const SAMPLE_SELF_TEST: RecordTarget = {
   id: "self-test",
   // localhost — start the dev server in a separate terminal: `bun dev`.
+  // Disabled by default; run via `bun run record -- self-test` to verify
+  // the pipeline end-to-end without producing extra MP4s.
   startUrl: "http://localhost:3003/dev/demo-pip",
-  enabled: true,
+  enabled: false,
   scenes: [
     {
       label: "Open iframe sample",
@@ -86,28 +92,66 @@ const SAMPLE_SELF_TEST: RecordTarget = {
 // `enabled: true` and fill in the auth + scene scripts when a recordable
 // surface is available (live demo account, local clone with seeded data,
 // or a storyboard HTML page in `app/dev/storyboard-<id>/`).
-const HITIDE_SKELETON: RecordTarget = {
+const HITIDE: RecordTarget = {
   id: "hitide",
-  startUrl: "http://localhost:3010/demo/intake",
-  enabled: false,
+  // Matches the path already wired into lib/projects.ts (KEI-020):
+  //   demo: { kind: "video", src: "/demos/hitide-walkthrough.mp4", … }
+  outputName: "hitide-walkthrough",
+  // Drives the in-repo storyboard at app/dev/storyboard-hitide/page.tsx —
+  // a faithful UI recreation, not the real HiTide platform. The recording
+  // is labeled "Recreation" inside both the storyboard chrome and the PiP
+  // chrome so a viewer never mistakes it for a live capture.
+  startUrl: "http://localhost:3003/dev/storyboard-hitide",
+  enabled: true,
+  posterAtSec: 4,
   scenes: [
     {
-      label: "Borrower intake",
+      label: "Borrower intake — Identity + Eligibility",
       steps: [
-        { kind: "wait", ms: 1500 },
-        // TODO: type into name + email fields, click Next, hold on Eligibility
+        { kind: "wait", ms: 1200 },
+        {
+          kind: "type",
+          selector: "#storyboard-name",
+          text: "Sample Applicant",
+          delayMs: 70,
+        },
+        { kind: "wait", ms: 400 },
+        {
+          kind: "type",
+          selector: "#storyboard-email",
+          text: "demo@hitide.example",
+          delayMs: 60,
+        },
+        { kind: "wait", ms: 600 },
+        { kind: "click", selector: "#storyboard-next-identity" },
+        // Eligibility checks animate in — hold so they read.
+        { kind: "wait", ms: 2400 },
+        { kind: "click", selector: "#storyboard-next-eligibility" },
       ],
     },
     {
       label: "DocuSign contract flow",
       steps: [
-        // TODO: trigger envelope generation, sign, confirmation
+        // Generating screen auto-advances after ~1.8s.
+        { kind: "wait", ms: 2200 },
+        { kind: "click", selector: "#storyboard-sign" },
+        // Signature pen animation + auto-advance.
+        { kind: "wait", ms: 1500 },
+        // Signed confirmation lands; cursor moves to "View loan status".
+        { kind: "wait", ms: 1200 },
+        { kind: "click", selector: "#storyboard-view-status" },
       ],
     },
     {
-      label: "Loan status",
+      label: "Loan status — timeline",
       steps: [
-        // TODO: cut to dashboard, hover timeline, hold on Approved
+        { kind: "wait", ms: 800 },
+        {
+          kind: "hover",
+          selector: '[data-storyboard-milestone="approved"]',
+        },
+        // Hold on Approved so the milestone reads as the headline outcome.
+        { kind: "wait", ms: 2200 },
       ],
     },
   ],
@@ -142,6 +186,6 @@ const GOODCALL_SKELETON: RecordTarget = {
 
 export const targets: RecordTarget[] = [
   SAMPLE_SELF_TEST,
-  HITIDE_SKELETON,
+  HITIDE,
   GOODCALL_SKELETON,
 ];
