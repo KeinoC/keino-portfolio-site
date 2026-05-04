@@ -63,9 +63,9 @@ Ownership split (confirmed against `~/Development/K-Tingz/`):
   - **zairoo** → `none` (Discord-only today; revisit when card-renderer ships a public web surface).
 - Cross-project tickets opened (each linked back to KEI-020):
   - `forge-bi`: [FOR-223](../../../forge-bi/.claude/backlog/FOR-223-keino-portfolio-pip-demo.md) — `/demo` route, seeded account, CSP `frame-ancestors`.
-  - `chicknz`: [CHK-100](../../../chicknz/.claude/backlog/CHK-100-keino-portfolio-pip-demo.md) — public demo family + auto-login + multi-tenant audit + CSP.
   - `cantrip`: [CNT-295](../../../cantrip/.claude/backlog/CNT-295-keino-portfolio-pip-demo.md) — pre-rolled `/session/demo` + CSP.
   - `LHBK-web-mono`: [LHBK-19](../../../LHBK-web-mono/.claude/backlog/LHBK-19-keino-portfolio-pip-demo.md) — CSP audit on public `/community` route.
+- **chicknz prep deferred**: a CHK-100 stub was drafted for the chicknz cross-repo work (public demo family + auto-login + multi-tenant audit + CSP), but not opened. KEI-023 should either spin up a fresh chicknz ticket when it picks up the iframe demos, or flip the chicknz entry in `lib/projects.ts` to `kind: "video"` (and add it to KEI-024's shot list) — both paths are documented as acceptable fallbacks in the original AC.
 - Beefed up KEI-024's body with detailed 3-scene shot lists (per-scene beats, timing, capture notes) for both HiTide and Good Call recordings. The skeleton was already there; this makes them recordable without further design.
 - No CSP fallback decisions yet — that comes during KEI-023 when each upstream ticket's preview deploy is verified. If any owned project fails CSP testing, the recovery path is to add it to KEI-024's shot list and flip `kind: "iframe"` → `"video"` on that entry.
 
