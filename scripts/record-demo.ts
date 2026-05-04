@@ -113,8 +113,9 @@ async function transcodeAndPoster(
   webmPath: string,
 ): Promise<{ mp4: string; poster: string }> {
   await mkdir(OUTPUT_DIR, { recursive: true });
-  const mp4 = path.join(OUTPUT_DIR, `${target.id}.mp4`);
-  const poster = path.join(OUTPUT_DIR, `${target.id}-poster.jpg`);
+  const basename = target.outputName ?? target.id;
+  const mp4 = path.join(OUTPUT_DIR, `${basename}.mp4`);
+  const poster = path.join(OUTPUT_DIR, `${basename}-poster.jpg`);
   const posterAt = target.posterAtSec ?? 1.0;
 
   // Two-pass-ish: try CRF 28 first, bump compression if oversized.
