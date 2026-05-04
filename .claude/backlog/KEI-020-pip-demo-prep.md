@@ -1,7 +1,7 @@
 ---
 id: KEI-020
 title: PiP demo prep & per-project decisions
-status: ready
+status: done
 priority: tier2
 estimate: medium
 ---
@@ -47,3 +47,26 @@ Ownership split (confirmed against `~/Development/K-Tingz/`):
 - Test `frame-ancestors` on a preview deploy of each owned project before locking the URL — silent CSP misconfig is the #1 way to ship a broken iframe.
 - Iframe `minSize` matters: most apps look broken below ~600×420. Default to that floor in the PiP shell unless a project opts higher.
 - This ticket is mostly *coordination*. The actual repo work happens in the other backlogs and lands as cross-repo dependencies for KEI-023.
+
+## Work Log
+
+### 2026-05-04 — Closed
+
+- Extended `Project` interface in `lib/projects.ts` with a discriminated `ProjectDemo` union (`iframe` | `video` | `none`). One refinement vs the ticket spec: `recordedAt` stays `string` (required), but `""` is the agreed sentinel for "not yet recorded" — KEI-024 fills it with an ISO date when the recording ships. Cleaner than making the field optional, since downstream `if (recordedAt) { … }` reads naturally.
+- Filled in `demo` for all 7 projects:
+  - **forge-bi** → `iframe` (`https://forge.keino.dev/demo`, 760×520, demo-account hint).
+  - **chicknz** → `iframe` (`https://chicknz.vercel.app/?demo=preview`, 720×480, sandboxed-family hint).
+  - **cantrip** → `iframe` (`https://cantrip.vercel.app/session/demo`, 880×560, pre-rolled-session hint).
+  - **lhbk-web** → `iframe` (`https://lhbk.org/community`, 720×480, no credentials).
+  - **good-call-technologies** → `video` (`/demos/goodcall-walkthrough.mp4`, recordedAt `""`).
+  - **high-tide-capital** → `video` (`/demos/hitide-walkthrough.mp4`, recordedAt `""`).
+  - **zairoo** → `none` (Discord-only today; revisit when card-renderer ships a public web surface).
+- Cross-project tickets opened (each linked back to KEI-020):
+  - `forge-bi`: [FOR-223](../../../forge-bi/.claude/backlog/FOR-223-keino-portfolio-pip-demo.md) — `/demo` route, seeded account, CSP `frame-ancestors`.
+  - `chicknz`: [CHK-100](../../../chicknz/.claude/backlog/CHK-100-keino-portfolio-pip-demo.md) — public demo family + auto-login + multi-tenant audit + CSP.
+  - `cantrip`: [CNT-295](../../../cantrip/.claude/backlog/CNT-295-keino-portfolio-pip-demo.md) — pre-rolled `/session/demo` + CSP.
+  - `LHBK-web-mono`: [LHBK-19](../../../LHBK-web-mono/.claude/backlog/LHBK-19-keino-portfolio-pip-demo.md) — CSP audit on public `/community` route.
+- Beefed up KEI-024's body with detailed 3-scene shot lists (per-scene beats, timing, capture notes) for both HiTide and Good Call recordings. The skeleton was already there; this makes them recordable without further design.
+- No CSP fallback decisions yet — that comes during KEI-023 when each upstream ticket's preview deploy is verified. If any owned project fails CSP testing, the recovery path is to add it to KEI-024's shot list and flip `kind: "iframe"` → `"video"` on that entry.
+
+Verified `bunx tsc --noEmit` and `bun lint` clean. No UI consumer yet, so no browser smoke test needed — KEI-022 will exercise the data shape end-to-end.
