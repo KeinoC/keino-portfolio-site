@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "capture": "bun run scripts/capture.ts",
+    "illustrate": "bun run scripts/illustrate.ts",
     "record": "bun run scripts/record-demo.ts",
     "prepare": "husky"
   },

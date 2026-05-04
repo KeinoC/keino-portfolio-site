@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
+import { FeatureShowcase } from "@/components/feature-showcase";
+import { features as caseStudyFeatures } from "@/components/feature-showcase-case-study.data";
 import { LenisProvider } from "@/components/lenis-provider";
 import { Nav } from "@/components/nav";
 import { SelectedWork } from "@/components/selected-work";
@@ -293,6 +295,25 @@ export default function Home() {
 
         {/* Selected Work */}
         <SelectedWork />
+
+        {/* Case-study walkthrough */}
+        <section
+          id="walkthrough"
+          className="px-6 md:px-12 max-w-[1400px] mx-auto py-32"
+        >
+          <div className="mb-12">
+            <span className="font-headline text-[14px] text-[#444] tracking-[2px] uppercase block mb-4">
+              How a case study reads
+            </span>
+            <h2 className="font-headline text-3xl md:text-4xl text-zinc-100">
+              From overview to architecture to lessons.
+            </h2>
+          </div>
+          <FeatureShowcase
+            features={caseStudyFeatures}
+            aria-label="Case study walkthrough"
+          />
+        </section>
 
         {/* About */}
         <section id="about" className="px-6 md:px-12 max-w-[1400px] mx-auto py-32">
