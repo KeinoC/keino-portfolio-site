@@ -9,6 +9,9 @@ export type ActiveDemo = {
   // Stable id (project slug) used for sessionStorage keying.
   id: string;
   title: string;
+  // The project's marketing/live URL — used by the PiP chrome's "Open in new
+  // tab" pop-out when the demo is a video (iframe pop-out uses demo.url).
+  liveUrl?: string;
   demo: Exclude<ProjectDemo, { kind: "none" }>;
 };
 

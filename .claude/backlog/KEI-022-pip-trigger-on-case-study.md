@@ -1,7 +1,7 @@
 ---
 id: KEI-022
 title: Wire <DemoTrigger/> into /work/[slug] case-study pages
-status: ready
+status: done
 priority: tier2
 estimate: small
 blocked_by: KEI-020, KEI-021

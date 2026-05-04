@@ -13,6 +13,7 @@ function GithubIcon({ size = 14 }: { size?: number }) {
   );
 }
 import { LenisProvider } from "@/components/lenis-provider";
+import { DemoTrigger } from "@/components/demo-trigger";
 import { getProject } from "@/lib/projects";
 import { notFound } from "next/navigation";
 
@@ -280,6 +281,7 @@ export default function ProjectClient({ slug }: { slug: string }) {
                     <ExternalLink size={14} />
                   </a>
                 )}
+                <DemoTrigger project={project} />
                 <a
                   href="mailto:keino@keino.dev"
                   className="font-body text-[14px] px-6 py-3 rounded-full border border-[#222] text-[#888] hover:border-[#555] hover:text-white transition-colors text-center"

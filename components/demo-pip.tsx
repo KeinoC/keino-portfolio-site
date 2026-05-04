@@ -375,7 +375,9 @@ function DemoPiPInner({
               current.demo.kind === "video" ? current.demo.recordedAt : ""
             }
             externalUrl={
-              current.demo.kind === "iframe" ? current.demo.url : null
+              current.demo.kind === "iframe"
+                ? current.demo.url
+                : current.liveUrl ?? null
             }
             onMinimize={() => setState("minimized")}
             onToggleExpand={() =>
@@ -530,11 +532,7 @@ function IframeBody({
 }) {
   return (
     <div className="relative flex-1 bg-[#050507]">
-      {hint ? (
-        <div className="absolute top-2 left-2 right-2 text-[11px] text-zinc-100 bg-black/75 px-2 py-1 rounded ring-1 ring-white/10 pointer-events-none z-10 shadow-md">
-          {hint}
-        </div>
-      ) : null}
+      {hint ? <CredentialBanner hint={hint} /> : null}
       <iframe
         src={url}
         title={`${title} demo`}
@@ -542,6 +540,49 @@ function IframeBody({
         sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
         className="w-full h-full border-0 bg-white"
       />
+    </div>
+  );
+}
+
+function CredentialBanner({ hint }: { hint: string }) {
+  const [dismissed, setDismissed] = useState(false);
+  const [copied, setCopied] = useState(false);
+  if (dismissed) return null;
+
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(hint);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Clipboard blocked — silently no-op; user can still read the hint.
+    }
+  };
+
+  return (
+    <div className="absolute top-2 left-2 right-2 z-10 flex items-center gap-2 text-[11px] text-zinc-100 bg-black/80 px-2 py-1 rounded ring-1 ring-white/10 shadow-md">
+      <button
+        type="button"
+        onClick={onCopy}
+        className="flex-1 text-left hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-300/60 rounded"
+        aria-label="Copy credentials hint"
+      >
+        <span className="text-zinc-400">Sign in: </span>
+        <span>{hint}</span>
+        {copied ? (
+          <span className="ml-2 text-emerald-400">copied</span>
+        ) : (
+          <span className="ml-2 text-zinc-500">tap to copy</span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss credentials banner"
+        className="size-5 inline-flex items-center justify-center rounded text-zinc-400 hover:text-zinc-100 hover:bg-white/5 transition-colors"
+      >
+        <X className="size-3" />
+      </button>
     </div>
   );
 }
