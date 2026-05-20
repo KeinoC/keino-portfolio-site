@@ -261,7 +261,7 @@ export default function Home() {
                 <KCMonogram />
               </motion.div>
               <motion.h1
-                className="font-headline text-[clamp(56px,10vw,96px)] font-bold text-white leading-[0.95] tracking-[-3px]"
+                className="font-headline text-[clamp(56px,10vw,96px)] font-bold text-[#D4A017] leading-[0.95] tracking-[-3px]"
                 variants={fadeUp}
                 transition={{ duration: 0.8 }}
               >
